@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from copy import deepcopy
 
+from .codec import decode_rows, rows_from_events
 from .mapping import VOICE_RANGES
 from .models import GVRReport, MusicEvent, Violation
 
@@ -16,7 +17,8 @@ def verify_events(
     events: list[MusicEvent],
     min_midi: int,
     max_midi: int,
-    tone_row: list[int] | None = None,
+    tone_rows: list[list[int]] | None = None,
+    codec: dict | None = None,
 ) -> tuple[list[Violation], dict[str, bool]]:
     violations: list[Violation] = []
     if len({e.event_id for e in events}) != len(events):
@@ -60,26 +62,43 @@ def verify_events(
             ))
 
     row_ok = True
-    if tone_row is not None:
-        melody = sorted((e for e in events if e.voice_id == "V1_melody"), key=lambda e: (e.onset, e.event_id))
-        for start in range(0, len(melody), 12):
-            cycle = melody[start:start + 12]
-            pcs = [e.midi % 12 for e in cycle]
-            expected = tone_row[:len(cycle)]
-            if pcs != expected:
+    permutation_ok = True
+    codec_domain_ok = True
+    if tone_rows is not None:
+        carrier = sorted(
+            (e for e in events if e.voice_id == "V1_melody" and e.is_codec_carrier),
+            key=lambda e: (e.codec_block, e.row_position, e.onset, e.event_id),
+        )
+        try:
+            actual_rows = rows_from_events(carrier)
+        except ValueError as exc:
+            actual_rows = []
+            row_ok = False
+            permutation_ok = False
+            violations.append(Violation(None, "H_permutation", "hard", str(exc)))
+        if len(actual_rows) != len(tone_rows):
+            row_ok = False
+            violations.append(Violation(None, "H_row", "hard", f"载体应有 {len(tone_rows)} 块，实际为 {len(actual_rows)} 块。"))
+        for block_index, (actual, expected) in enumerate(zip(actual_rows, tone_rows)):
+            if actual != expected:
                 row_ok = False
-                for event, actual, target in zip(cycle, pcs, expected):
-                    if actual != target:
-                        violations.append(Violation(event.event_id, "H_row", "hard", f"主旋律音列位置应为 {target}，实际为 {actual}。"))
-            if len(cycle) == 12 and len(set(pcs)) != 12:
-                row_ok = False
-                violations.append(Violation(cycle[-1].event_id, "H_aggregate", "hard", "主旋律完整音列中出现提前重复。"))
+                violations.append(Violation(None, "H_row", "hard", f"第 {block_index + 1} 块音级顺序与编码证书不一致。"))
+            if sorted(actual) != list(range(12)):
+                permutation_ok = False
+                violations.append(Violation(None, "H_permutation", "hard", f"第 {block_index + 1} 块不是完整十二音列。"))
+        if codec is not None and actual_rows:
+            try:
+                decode_rows(actual_rows, codec, verify_checksum=True)
+            except ValueError as exc:
+                codec_domain_ok = False
+                violations.append(Violation(None, "H_codec_domain", "hard", str(exc)))
 
     hard_rules = {"H_event_id", "H_duration", "H_timeline", "H_register", "H_mapping", "H_trace", "H_parent"}
     checks = {rule: not any(v.rule == rule and v.severity == "hard" for v in violations) for rule in sorted(hard_rules)}
-    if tone_row is not None:
+    if tone_rows is not None:
         checks["H_row"] = row_ok
-        checks["H_aggregate"] = not any(v.rule == "H_aggregate" for v in violations)
+        checks["H_permutation"] = permutation_ok
+        checks["H_codec_domain"] = codec_domain_ok
     checks["coverage"] = bool(events)
     checks["polyphony"] = len(by_voice) >= 2
     checks["independent_voices"] = all(
@@ -98,10 +117,11 @@ def repair_events(
     events: list[MusicEvent],
     min_midi: int,
     max_midi: int,
-    tone_row: list[int] | None = None,
+    tone_rows: list[list[int]] | None = None,
+    codec: dict | None = None,
 ) -> tuple[list[MusicEvent], GVRReport]:
     repaired_events = deepcopy(events)
-    before, _ = verify_events(repaired_events, min_midi, max_midi, tone_row)
+    before, _ = verify_events(repaired_events, min_midi, max_midi, tone_rows, codec)
     repairs: list[Violation] = []
     by_voice: dict[str, list[MusicEvent]] = defaultdict(list)
     for event in repaired_events:
@@ -132,7 +152,7 @@ def repair_events(
             previous_end = event.onset + event.duration
 
     repaired_events.sort(key=lambda e: (e.onset, e.voice_id, e.event_id))
-    after, checks = verify_events(repaired_events, min_midi, max_midi, tone_row)
+    after, checks = verify_events(repaired_events, min_midi, max_midi, tone_rows, codec)
     hard_after = [v for v in after if v.severity == "hard"]
     report = GVRReport(
         proposed_count=len(events),
@@ -142,6 +162,8 @@ def repair_events(
         violations_after=after,
         repairs=repairs,
         checks=checks,
-        tone_row=tone_row,
+        tone_row=tone_rows[0] if tone_rows else None,
+        tone_rows=tone_rows,
+        codec=codec,
     )
     return repaired_events, report

@@ -9,6 +9,7 @@ from xml.etree import ElementTree
 from biomusic.pipeline import SonificationSettings, run_pipeline
 from biomusic.mapping import CLASSICAL_TIMBRES
 from biomusic.parsers import parse_uploaded
+from biomusic.codec import decode_artifact, decode_rows, encode_sequence, rank_permutation, unrank_permutation
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -57,6 +58,47 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(len(result.report.tone_row), 12)
         first_cycle = [e.midi % 12 for e in result.events if e.voice_id == "V1_melody"][:12]
         self.assertEqual(first_cycle, result.report.tone_row)
+        self.assertTrue(result.report.checks["H_permutation"])
+        self.assertTrue(result.report.checks["H_codec_domain"])
+
+    def test_dna_codec_roundtrip_and_artifacts(self):
+        dna = "ACGTGATTACAACCGGTTA"
+        data = f">dna_roundtrip\n{dna}\n".encode("ascii")
+        result = run_pipeline(
+            "dna_roundtrip.fna",
+            data,
+            SonificationSettings(pitch_mode="可逆十二音列编解码", row_form="RI", max_audio_seconds=2),
+        )
+        self.assertEqual(len([e for e in result.events if e.is_codec_carrier]), 24)
+        for filename, artifact in (
+            ("result.json", result.report_json),
+            ("result.musicxml", result.musicxml),
+            ("result.mid", result.midi),
+        ):
+            decoded, metadata, rows = decode_artifact(filename, artifact)
+            self.assertEqual(decoded, dna)
+            self.assertEqual(metadata["pad_length"], 5)
+            self.assertEqual(len(rows), 2)
+
+    def test_protein_codec_roundtrip_with_stop(self):
+        protein = "ACDEFGHIKLMNPQRSTVWY*"
+        for form in ("P", "I", "R", "RI"):
+            rows, metadata = encode_sequence(protein, "protein", form)
+            self.assertEqual(decode_rows(rows, metadata), protein)
+            self.assertEqual(metadata["alphabet"], "ACDEFGHIKLMNPQRSTVWY*")
+            self.assertEqual(metadata["block_size"], 6)
+
+    def test_cantor_rank_unrank_and_strict_domain(self):
+        for rank in (0, 1, 16_777_215, 85_766_120, 479_001_599):
+            self.assertEqual(rank_permutation(unrank_permutation(rank)), rank)
+        rows, metadata = encode_sequence("AAAAAAAAAAAA", "dna", "P")
+        invalid = [unrank_permutation(16_777_216)]
+        with self.assertRaisesRegex(ValueError, "H_codec_domain"):
+            decode_rows(invalid, metadata, verify_checksum=False)
+        with self.assertRaisesRegex(ValueError, "未定义符号"):
+            encode_sequence("ACGTNACGTACG", "dna")
+        with self.assertRaisesRegex(ValueError, "未定义符号"):
+            encode_sequence("ACDEFG_", "protein")
 
     def test_pdb_spatial_and_nma(self):
         data = (ROOT / "examples" / "example_structure.pdb").read_bytes()

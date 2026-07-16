@@ -12,7 +12,7 @@ from docx.shared import Inches, Pt, RGBColor
 
 
 ROOT = Path(__file__).resolve().parent
-OUTPUT = ROOT / "BioSound_GVR多声部管弦乐版平台功能与原理说明.docx"
+OUTPUT = ROOT / "BioSound_GVR可逆十二音列版平台功能与原理说明.docx"
 
 # compact_reference_guide tokens + named CJK font override
 BLUE = "2E74B5"
@@ -392,14 +392,14 @@ def build():
         ("序列名称", "为纯文本序列生成 FASTA 标题", "使用样本号或基因/蛋白名称"),
         ("序列类型", "自动识别、蛋白质、DNA、RNA", "含模糊字符时手动指定"),
         ("记录/链", "多 FASTA 记录或多 PDB 链的选择器", "每次处理一个记录"),
-        ("音高策略", "生物物理映射、文献氨基酸映射、十二音列 GVR", "科研比较时保存设置"),
+        ("音高策略", "生物物理映射、文献氨基酸映射、可逆十二音列编解码", "科研比较时保存设置"),
         ("调式", "多利亚、五声、自然小调、半音阶", "文献映射模式主要影响非蛋白输入"),
         ("十二音列形式", "P、I、R、RI", "仅十二音列模式启用"),
         ("速度/拍号", "控制播放时间与小节组织", "同批比较保持一致"),
-        ("最多生成事件", "对超长输入进行等间隔抽样", "研究报告中记录该值"),
+        ("最多生成事件", "对非可逆模式的超长输入等间隔抽样", "可逆模式自动禁用抽样"),
         ("古典编配层数", "从 1 到 6 逐步加入对位、低音、圆号、中提琴和竖琴", "需要完整效果时选 6"),
         ("对位独立度", "控制小提琴延迟、反向音区与主旋律的差异", "初学者建议 0.70"),
-        ("随机种子", "确定十二音列和可复现细节", "同一实验固定种子"),
+        ("随机种子", "固定试听合成细节；不参与可逆音列编码", "同一实验固定种子"),
         ("PDB NMA", "有 CA 坐标时计算相对简正模式", "大结构会自动抽样"),
     ], [1750, 4810, 2800], size=9.2)
     doc.add_heading("2.2 生成以后看到什么", level=2)
@@ -408,6 +408,7 @@ def build():
     add_bullet(doc, "生物—音乐轨迹：逐行查看声部、音乐功能、主事件 ID、来源位置、符号、起拍、时值、MIDI、音级、声像、乐器、状态和映射理由。")
     add_bullet(doc, "GVR 与映射：检查硬规则是否通过、查看修复日志、核对氨基酸音高配置。")
     add_bullet(doc, "科学边界：查看 NMA 参数、CSV QC 假设和论文方法在本平台中的实现边界。")
+    add_para(doc, "页面另设“从平台产物还原 DNA / RNA / 蛋白质序列”面板，可严格读取平台生成的 GVR JSON、MusicXML 或 MIDI。WAV 只用于试听，不作为无损解码载体。")
 
     doc.add_heading("3. 输入格式与解析规则", level=1)
     doc.add_heading("3.1 直接粘贴序列", level=2)
@@ -439,7 +440,7 @@ def build():
         ("MusicXML", "每声部独立 Part、谱表、拍号、速度、歌词符号与乐器定义", "MuseScore/Sibelius 总谱与分谱"),
         ("PDF", "由本机 MuseScore 从 MusicXML 排版", "打印、分享、课堂展示"),
         ("Trace CSV", "逐音符来源与全部映射证书", "复现、审计、统计"),
-        ("GVR JSON", "元数据、检查、修复、NMA、音频参数", "研究归档、程序读取"),
+        ("GVR JSON", "元数据、检查、修复、NMA、音频参数与完整载体音列", "研究归档、严格解码"),
     ], [1350, 4450, 3560], size=9.3)
     add_para(doc, "PDF 按钮需要本机安装 MuseScore 4。若检测不到 MuseScore，平台仍提供 MusicXML；用户可在任意兼容软件中手动导出 PDF。")
 
@@ -458,7 +459,7 @@ def build():
     doc.add_heading("5.3 时值", level=2)
     add_para(doc, "PDB 有二级结构时：helix = 1 个四分音符拍，sheet = 1.5 拍，coil = 0.5 拍。只有序列时，疏水性高的残基通常为 0.5 拍，亲水性强的残基为 1 拍，中间区域为 0.75 拍。组学行的 detected_features 控制 0.5–1.5 拍。所有时值量化到 0.25 拍。")
     doc.add_heading("5.4 超长序列抽样", level=2)
-    add_para(doc, "若输入长度 N 大于“最多生成事件”M，步长 stride = ceil(N/M)，按 0, stride, 2×stride…选择数据点。Trace CSV 保存真实 source_index，因此抽样后的事件仍能回到原始位置。抽样用于控制浏览器试听成本，不代表滑动平均或统计汇总。")
+    add_para(doc, "非可逆模式下，若输入长度 N 大于“最多生成事件”M，步长 stride = ceil(N/M)，按 0, stride, 2×stride…选择数据点。Trace CSV 保存真实 source_index。可逆十二音列模式绝不抽样：DNA/RNA 每块固定生成 12 个载体音符，蛋白质每 6 个残基生成 12 个载体音符；只有 WAV 试听可能按时长截断。")
 
     doc.add_heading("6. PDB 空间声像、接触图与粗粒化 NMA", level=1)
     doc.add_heading("6.1 三维坐标到左右声像", level=2)
@@ -490,7 +491,7 @@ def build():
     add_table(doc, ["模式", "音级来源", "生物特征仍控制"], [
         ("文献氨基酸映射", "pitch_mapping.csv；保留 Spinning Melodies 已知映射", "电荷音区、时值、力度、配器、声像"),
         ("生物物理映射", "归一化值进入五声/多利亚/小调/半音阶", "结构、QC、接触度与空间位置"),
-        ("十二音列 GVR", "由序列和种子生成的 12 音级行", "音区、节奏、力度、配器、声像"),
+        ("可逆十二音列编解码", "每个序列块经进制转换与康托逆排名得到独立音列", "音区、节奏、力度、配器、声像"),
     ], [2200, 3680, 3480])
     add_para(doc, "文献表未覆盖 C、I、N、W，因为原始丝蛋白构建体未使用全部 20 种氨基酸。本平台以 extended_inference 明确标记扩展值，避免把软件推断误称为文献事实。")
     doc.add_heading("8.2 六声部古典编配", level=2)
@@ -525,10 +526,12 @@ def build():
 
     doc.add_heading("9. 十二音列与 GVR 原理", level=1)
     doc.add_heading("9.1 从生物序列得到十二音列", level=2)
-    add_para(doc, "平台把“随机种子:序列内容:记录名”送入 SHA-256。用摘要前 12 个字节对 0–11 排序，得到确定性排列；相同输入和种子必定得到相同行。随后把第一音归零，构造标准行形式：P 为原形，I 对每个音级取 -x mod 12，R 反转顺序，RI 先倒影再逆行。")
+    add_para(doc, "载体层不使用哈希映射。DNA 使用 A=0、C=1、G=2、T=3，RNA 把 U 置于第 4 位；每 12 个碱基构成一个四进制整数 N。蛋白质使用字母表 ACDEFGHIKLMNPQRSTVWY* 的 21 进制编号，每 6 个残基构成一个整数 N。4^12 = 16,777,216 < 12!，21^6 = 85,766,121 < 12!，因此每个合法块都能无碰撞地进入十二音列排列空间。")
+    add_para(doc, "平台对 N 执行零起点词典序康托逆排名（Lehmer/factoradic unranking），得到 0–11 的唯一全排列。尾块不足时用 A 补齐，并保存 original_length、pad_length、字母表、块长、载体声部、行形式与版本。SHA-256 只作为解码后的完整性校验和，不承担映射。")
+    add_para(doc, "P/I/R/RI 只改变呈现，不丢弃绝对音级：P 保持原排列，I 对每个音级取 -x mod 12，R 反转，RI 同时倒影和逆行。解码器先用记录的形式撤销变形，再计算康托排名。不能把第一音归零，否则会丢失载体转调信息。")
     add_code(doc, "P  = (p0, p1, ... p11)\nI  = (-p0, -p1, ... -p11) mod 12\nR  = reverse(P)\nRI = reverse(I)")
     doc.add_heading("9.2 事件证书", level=2)
-    add_para(doc, "每个 MusicEvent 至少包含 event_id、voice_id、role、parent_event_id、source_index、source_label、symbol、onset、duration、midi、velocity、pan、timbre、expected_pc、mapping_rule、row_position、row_form、status 和 feature 字典。expected_pc 与 actual MIDI mod 12 分开保存；parent_event_id 把对位、低音、和声和重音连接回主旋律来源。")
+    add_para(doc, "每个 MusicEvent 至少包含 event_id、voice_id、role、parent_event_id、source_index、source_label、symbol、onset、duration、midi、velocity、pan、timbre、expected_pc、mapping_rule、row_position、row_form、codec_block、is_codec_carrier、status 和 feature 字典。只有 V1_melody 且 is_codec_carrier=true 的事件进入解码；五个派生声部只负责艺术表现。")
     doc.add_heading("9.3 硬约束", level=2)
     add_table(doc, ["规则", "验证内容", "失败后处理"], [
         ("H_mapping", "实际音级 = 映射证书 expected_pc", "保持音级投影到合法 MIDI"),
@@ -536,8 +539,9 @@ def build():
         ("H_timeline", "同一 voice_id 内不意外重叠；跨声部重叠合法", "只顺延发生冲突的单一声部"),
         ("H_duration", "时值 > 0", "设为 0.25 拍"),
         ("H_trace", "来源索引与标签存在", "不可安全修复则应拒绝"),
-        ("H_row", "十二音列位置与活动行一致", "投影到目标行音级"),
-        ("H_aggregate", "完整 12 音循环无提前重复", "最终复检；失败不发布"),
+        ("H_row", "每个载体块与编码证书的音级顺序一致", "最终复检；失败不发布"),
+        ("H_permutation", "每块恰好包含 0–11 且各出现一次", "严格拒绝，不静默猜测"),
+        ("H_codec_domain", "DNA/RNA 排名 < 4^12；蛋白质排名 < 21^6", "严格拒绝；不截到同一最大值"),
         ("H_event_id", "所有事件编号全局唯一", "不可安全修复则拒绝发布"),
         ("H_parent", "每个派生声部事件引用有效主事件", "不可安全修复则拒绝发布"),
     ], [1800, 4660, 2900], size=9.2)
@@ -549,6 +553,7 @@ def build():
     add_number(doc, "Re-verify：对修复后的最终事件重新扫描。")
     add_number(doc, "Release：有任何剩余硬违规时不发布 WAV/MIDI/MusicXML。")
     add_callout(doc, "与论文一致的谨慎表述", "事件级约束通过不等于作品在所有音乐学层面都完全合法。平台报告的是已实现规则的通过状态，并保留可核查轨迹。", fill=PALE_TEAL)
+    add_callout(doc, "严格模式", "未经修改且保留元数据的 JSON、MusicXML、MIDI 才承诺符号级精确往返。非法编辑默认报错；任何自动修复都会产生新候选序列，不能再称为恢复原始序列。", fill=PALE_GOLD)
 
     doc.add_heading("10. 溯源、可复现性与科研使用", level=1)
     doc.add_heading("10.1 最小复现包", level=2)
@@ -559,7 +564,7 @@ def build():
     add_bullet(doc, "先比较 Trace 中的特征和事件统计，再讨论主观听感。")
     add_bullet(doc, "盲听时不要告诉听者样本标签，并收集可重复的评分维度。")
     doc.add_heading("10.3 可发表的准确措辞", level=2)
-    add_para(doc, "推荐：本工具实施可配置、可追溯的规则声学化，并以确定性验证器检查事件级映射一致性。")
+    add_para(doc, "推荐：本工具实施可配置、可追溯的规则声学化；对未修改且保留编解码元数据的符号载体，DNA/RNA 或蛋白质字符串可精确往返，并由确定性验证器检查事件级映射一致性。")
     add_para(doc, "不推荐：本工具无损还原蛋白质真实声音，或声音直接证明某种结构/疾病状态。")
 
     doc.add_heading("11. 多类输入的完整示例工作流", level=1)
@@ -574,7 +579,7 @@ def build():
     doc.add_heading("11.4 单细胞表达 CSV", level=2)
     add_para(doc, "确保行为细胞、列为基因，线粒体基因以 MT- 或 MT_ 开头。生成后核对 mean_mitochondrial_fraction 和 low-pass cutoff。听到沉闷仅表示当前 QC 规则被触发，必须回到线粒体比例、小提琴图和过滤阈值复核。")
     doc.add_heading("11.5 十二音列", level=2)
-    add_para(doc, "选择“十二音列 GVR”，记录种子与 P/I/R/RI。生成后在 GVR 标签核对 tone_row、H_row、H_aggregate。若要比较两段序列的音列差异，固定种子；若要比较不同作曲变体，固定序列并改变种子。")
+    add_para(doc, "选择“可逆十二音列编解码”和 P/I/R/RI。生成后核对 H_row、H_permutation、H_codec_domain 与载体块数，并同时保存 GVR JSON。把 JSON、MusicXML 或 MIDI 上传到页面解码面板，应得到与输入完全一致的字符串。蛋白质模式恢复的是氨基酸序列，不能凭蛋白质反推出原始同义密码子。")
     doc.add_heading("11.6 表观、代谢或关联 CSV", level=2)
     add_para(doc, "先用清晰列名表达数据语义：表观信号使用 methyl/CpG/H3K/ChIP 类列名；代谢表至少包含 metabolite/compound 与 abundance；关联数据至少包含 pvalue 与 chromosome/position。生成后先核对 record.data_type 和输入元数据，再讨论声学结果。若自动分类错误，应整理列名或在导入前转换数据，而不是依据听感猜测模态。")
 
@@ -602,6 +607,7 @@ def build():
         ("models.py", "BioRecord、MusicEvent、Violation、GVRReport 数据结构"),
         ("parsers.py", "FASTA、PDB、CSV 解析与格式识别"),
         ("features.py", "理化特征、PDB 声像/接触度、粗粒化 NMA"),
+        ("codec.py", "DNA/RNA 四进制、蛋白质 21 进制、康托排名/逆排名与产物解码"),
         ("mapping.py", "模态特异音高、六声部派生、音域、十二音列与事件生成"),
         ("gvr.py", "按声部硬约束验证、局部修复、软齐奏提示和最终门控"),
         ("synth.py", "古典乐器频谱近似、多声部混合、舞台声像、QC 滤波、WAV"),
@@ -612,12 +618,13 @@ def build():
         (".streamlit/config.toml", "高对比主题、headless 与关闭统计提示"),
     ], [2800, 6560], size=9.2)
     doc.add_heading("13.1 Python API", level=2)
-    add_code(doc, "from biomusic.pipeline import SonificationSettings, run_pipeline\n\nsettings = SonificationSettings(\n    pitch_mode='十二音列 GVR', row_form='RI', seed=42,\n    texture_density=6, counterpoint_strength=0.70\n)\nresult = run_pipeline('sample.fasta', fasta_bytes, settings)\nassert result.report.passed\nPath('sample.mid').write_bytes(result.midi)")
+    add_code(doc, "from biomusic.pipeline import SonificationSettings, run_pipeline\nfrom biomusic.codec import decode_artifact\n\nsettings = SonificationSettings(\n    pitch_mode='可逆十二音列编解码', row_form='RI',\n    texture_density=6, counterpoint_strength=0.70\n)\nresult = run_pipeline('sample.fasta', fasta_bytes, settings)\nsequence, metadata, rows = decode_artifact('sample.mid', result.midi)\nassert sequence == ''.join(result.record.symbols)")
 
     doc.add_heading("14. 测试、验收与后续扩展", level=1)
     doc.add_heading("14.1 当前自动化测试", level=2)
     add_bullet(doc, "FASTA：完整生成、WAV RIFF、多轨 MIDI、多 Part MusicXML 与 GVR JSON。")
-    add_bullet(doc, "十二音列：RI 行、前 12 音顺序、H_row 和 tone_row。")
+    add_bullet(doc, "十二音列：DNA/蛋白质、P/I/R/RI、康托排名边界、H_row/H_permutation/H_codec_domain。")
+    add_bullet(doc, "逆向解码：GVR JSON、MusicXML、MIDI 均恢复原字符串；非法域严格拒绝。")
     add_bullet(doc, "PDB：空间声像、接触度与 NMA 可用性。")
     add_bullet(doc, "CSV：线粒体比例、QC 低通和转录组类型。")
     add_bullet(doc, "配器：所有事件必须属于九种古典乐器白名单。")
@@ -691,12 +698,13 @@ def build():
         ("symbol", "氨基酸、碱基、cell 或 peak"), ("onset_quarter/duration_quarter", "以四分音符为单位的起拍与时值"),
         ("midi/pitch_class", "实际音高与实际音级"), ("expected_pc", "生物映射或十二音列证书要求的音级"),
         ("velocity/pan", "力度和左右声像"), ("timbre", "九种古典配器内部名称"),
-        ("row_position/row_form", "十二音列位置与形式；非序列模式为空"), ("status", "retained 或 repaired"),
+        ("row_position/row_form", "十二音列位置与呈现形式；非序列模式为空"), ("codec_block/is_codec_carrier", "载体块号与是否参与解码"),
+        ("status", "retained 或 repaired"),
         ("mapping_rule", "该事件的音高、派生或结构规则摘要"), ("hydropathy/charge/contact/value/uncertainty", "进入音乐映射的主要数值特征"),
     ], [3300, 6060], size=9.2)
 
     doc.add_heading("附录 C：GVR JSON 结构", level=1)
-    add_code(doc, "{\n  'metadata': {\n    'record_name': '...', 'data_type': 'protein',\n    'pitch_mode': '十二音列 GVR', 'audio': {...}, 'nma': {...}\n  },\n  'gvr': {\n    'passed': true, 'checks': {'H_mapping': true, ...},\n    'tone_row': [0, ...], 'repairs': [],\n    'violations_before': [], 'violations_after': []\n  }\n}")
+    add_code(doc, "{\n  'metadata': {'record_name': '...', 'audio': {...}, 'nma': {...}},\n  'gvr': {\n    'passed': true,\n    'checks': {'H_row': true, 'H_permutation': true, 'H_codec_domain': true},\n    'tone_rows': [[0, ...], ...],\n    'codec': {\n      'codec_version': 'biosound-cantor-v1', 'data_type': 'protein',\n      'alphabet': 'ACDEFGHIKLMNPQRSTVWY*', 'block_size': 6,\n      'row_form': 'RI', 'original_length': 83, 'pad_length': 1\n    }\n  }\n}")
 
     doc.add_heading("附录 D：科研发布前检查清单", level=1)
     for item in [
@@ -718,7 +726,7 @@ def build():
         ("Row-preserving Repair", "按声部换八度保音级、修时值、顺延内部重叠", "没有 LLM patch/replan"),
         ("Final release gate", "violations_after 为空才发布", "失败会明确报错"),
         ("Trace", "每个音符保存来源、证书和状态", "计划层历史仍有限"),
-        ("十二音列 P/I/R/RI", "SHA-256 确定行 + 四种形式", "生物特征控制其他音乐维度"),
+        ("十二音列 P/I/R/RI", "分块进制数 + 康托编解码 + 可逆呈现形式", "V1 承载数据；生物特征控制其他维度"),
     ], [2600, 3300, 3460], size=9.0)
 
     # Keep core properties explicit for deterministic updates in Word.

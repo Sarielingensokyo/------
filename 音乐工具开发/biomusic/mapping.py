@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import csv
-import hashlib
 from dataclasses import dataclass, replace
 from pathlib import Path
 
 import numpy as np
 
+from .codec import encode_sequence, transform_row
 from .models import BioRecord, MusicEvent
 
 
@@ -65,20 +65,6 @@ def load_pitch_mapping(path: str | Path) -> dict[str, int]:
         for row in csv.DictReader(handle):
             mapping[row["symbol"].upper()] = int(row["midi"])
     return mapping
-
-
-def make_tone_row(source: str, seed: int = 42) -> list[int]:
-    digest = hashlib.sha256(f"{seed}:{source}".encode("utf-8")).digest()
-    return sorted(range(12), key=lambda pc: digest[pc])
-
-
-def transform_row(row: list[int], form: str) -> list[int]:
-    zeroed = [(pc - row[0]) % 12 for pc in row]
-    if form in {"I", "RI"}:
-        zeroed = [(-pc) % 12 for pc in zeroed]
-    if form in {"R", "RI"}:
-        zeroed = list(reversed(zeroed))
-    return zeroed
 
 
 def _nearest_midi(pc: int, target: float, low: int, high: int) -> int:
@@ -220,6 +206,84 @@ def _base_events(
     return events
 
 
+def _codec_events(
+    record: BioRecord,
+    settings: MappingSettings,
+    tone_rows: list[list[int]],
+    codec: dict,
+) -> list[MusicEvent]:
+    """Create the complete, non-downsampled V1 carrier timeline."""
+    block_size = int(codec["block_size"])
+    events: list[MusicEvent] = []
+    onset = 0.0
+    melody_timbre = _melody_timbre(record)
+    event_id = 0
+    for block_index, row in enumerate(tone_rows):
+        for row_position, pc in enumerate(row):
+            # DNA/RNA: one carrier note per base. Protein: two notes per residue.
+            source_offset = row_position if block_size == 12 else row_position // 2
+            source_index = block_index * block_size + source_offset
+            is_padding = source_index >= record.length
+            if is_padding:
+                source_label = f"PAD:{source_index + 1}"
+                symbol = str(codec["pad_symbol"])
+                feature_index = max(0, record.length - 1)
+            else:
+                source_label = record.source_labels[source_index]
+                symbol = record.symbols[source_index].upper()
+                feature_index = source_index
+
+            hydro = _feature(record, "hydropathy_normalized", feature_index, _feature(record, "value", feature_index, 0.5))
+            charge = _feature(record, "charge", feature_index, _feature(record, "effect", feature_index, 0.0))
+            contact = _feature(record, "contact_degree", feature_index, 0.5)
+            value = _feature(record, "value", feature_index, hydro)
+            uncertainty = _feature(record, "uncertainty", feature_index, 0.0)
+            target = settings.root_midi + 12 * (0.5 + 0.8 * charge + 0.4 * (contact - 0.5))
+            midi = _voice_midi(pc, target, "V1_melody")
+            duration_scale = 0.5 if block_size == 6 else 1.0
+            duration = max(0.25, round(_duration(record, feature_index) * duration_scale * 4) / 4)
+            biological_pan = _feature(record, "spatial_pan", feature_index, 0.0)
+            pan = float(np.clip(-0.12 + 0.55 * biological_pan, -1, 1))
+            velocity = int(np.clip(60 + 28 * abs(charge) + 18 * value - 18 * uncertainty, 34, 118))
+            rule = (
+                f"可逆载体块 {block_index + 1}/{len(tone_rows)}，{settings.row_form}[{row_position}]={pc}；"
+                f"音级承载序列，音区/时值/力度/声像由来源位置 {source_label} 的生物特征控制"
+            )
+            events.append(MusicEvent(
+                event_id=event_id,
+                source_index=source_index,
+                source_label=source_label,
+                symbol=symbol,
+                onset=round(onset, 4),
+                duration=duration,
+                midi=midi,
+                velocity=velocity,
+                pan=pan,
+                timbre=melody_timbre,
+                expected_pc=pc,
+                mapping_rule=rule,
+                voice_id="V1_melody",
+                role="lossless_codec_carrier",
+                parent_event_id=None,
+                features={
+                    "hydropathy": round(hydro, 4),
+                    "charge": round(charge, 4),
+                    "contact_degree": round(contact, 4),
+                    "value": round(value, 4),
+                    "uncertainty": round(uncertainty, 4),
+                },
+                row_position=row_position,
+                row_form=settings.row_form,
+                codec_block=block_index,
+                is_codec_carrier=True,
+            ))
+            event_id += 1
+            onset += duration
+        # Block boundaries are audible but do not add or remove carrier notes.
+        onset += 0.25
+    return events
+
+
 def _derived(
     parent: MusicEvent,
     *,
@@ -249,6 +313,8 @@ def _derived(
         role=role,
         parent_event_id=parent.event_id,
         row_form=row_form,
+        codec_block=None,
+        is_codec_carrier=False,
         status="proposed",
     )
 
@@ -257,7 +323,7 @@ def _orchestrate(
     melody: list[MusicEvent],
     record: BioRecord,
     settings: MappingSettings,
-    tone_row: list[int] | None,
+    tone_rows: list[list[int]] | None,
 ) -> list[MusicEvent]:
     if not melody:
         return []
@@ -268,12 +334,12 @@ def _orchestrate(
     if density >= 2:
         step = 2 if settings.counterpoint_strength >= 0.55 else 3
         next_onset = 0.0
-        inverted_row = transform_row(tone_row, "I") if tone_row else None
         for i, parent in enumerate(melody[1::step]):
             onset = max(parent.onset + 0.5, next_onset)
             if onset >= total_end:
                 continue
-            if inverted_row is not None and parent.row_position is not None:
+            if tone_rows and parent.codec_block is not None and parent.row_position is not None:
+                inverted_row = transform_row(tone_rows[parent.codec_block], "I")
                 pc = inverted_row[parent.row_position]
                 target = 72 - (parent.midi - 66) * settings.counterpoint_strength
                 midi = _voice_midi(pc, target, "V2_counterpoint")
@@ -375,13 +441,13 @@ def generate_events(
     record: BioRecord,
     settings: MappingSettings,
     pitch_map: dict[str, int],
-) -> tuple[list[MusicEvent], list[int] | None]:
+) -> tuple[list[MusicEvent], list[list[int]] | None, dict | None]:
     if not record.symbols:
-        return [], None
-    source_text = "".join(record.symbols) + record.name
-    tone_row = (
-        transform_row(make_tone_row(source_text, settings.seed), settings.row_form)
-        if settings.pitch_mode == "十二音列 GVR" else None
-    )
-    melody = _base_events(record, settings, pitch_map, tone_row)
-    return _orchestrate(melody, record, settings, tone_row), tone_row
+        return [], None, None
+    codec_mode = settings.pitch_mode in {"十二音列 GVR", "可逆十二音列编解码"}
+    if codec_mode:
+        tone_rows, codec = encode_sequence("".join(record.symbols), record.data_type, settings.row_form)
+        melody = _codec_events(record, settings, tone_rows, codec)
+        return _orchestrate(melody, record, settings, tone_rows), tone_rows, codec
+    melody = _base_events(record, settings, pitch_map, None)
+    return _orchestrate(melody, record, settings, None), None, None

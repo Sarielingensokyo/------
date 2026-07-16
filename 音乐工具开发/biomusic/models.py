@@ -40,6 +40,8 @@ class MusicEvent:
     features: dict[str, float] = field(default_factory=dict)
     row_position: int | None = None
     row_form: str | None = None
+    codec_block: int | None = None
+    is_codec_carrier: bool = False
     status: str = "proposed"
 
     def to_dict(self) -> dict[str, Any]:
@@ -71,6 +73,8 @@ class GVRReport:
     repairs: list[Violation]
     checks: dict[str, bool]
     tone_row: list[int] | None = None
+    tone_rows: list[list[int]] | None = None
+    codec: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -79,6 +83,8 @@ class GVRReport:
             "passed": self.passed,
             "checks": self.checks,
             "tone_row": self.tone_row,
+            "tone_rows": self.tone_rows,
+            "codec": self.codec,
             "violations_before": [v.to_dict() for v in self.violations_before],
             "violations_after": [v.to_dict() for v in self.violations_after],
             "repairs": [v.to_dict() for v in self.repairs],

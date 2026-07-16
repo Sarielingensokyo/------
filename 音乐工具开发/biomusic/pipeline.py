@@ -65,6 +65,7 @@ def _trace_csv(events: list[MusicEvent]) -> bytes:
         "event_id", "voice_id", "role", "parent_event_id", "source_index", "source_label", "symbol", "onset_quarter",
         "duration_quarter", "midi", "pitch_class", "velocity", "pan", "timbre",
         "expected_pc", "row_position", "row_form", "status", "mapping_rule",
+        "codec_block", "is_codec_carrier",
         "hydropathy", "charge", "contact_degree", "value", "uncertainty",
     ]
     writer = csv.DictWriter(stream, fieldnames=fields)
@@ -89,6 +90,8 @@ def _trace_csv(events: list[MusicEvent]) -> bytes:
             "expected_pc": event.expected_pc,
             "row_position": event.row_position if event.row_position is not None else "",
             "row_form": event.row_form or "",
+            "codec_block": event.codec_block if event.codec_block is not None else "",
+            "is_codec_carrier": event.is_codec_carrier,
             "status": event.status,
             "mapping_rule": event.mapping_rule,
             **event.features,
@@ -120,8 +123,8 @@ def run_pipeline(filename: str, data: bytes, settings: SonificationSettings, pit
         counterpoint_strength=settings.counterpoint_strength,
     )
     pitch_map = load_pitch_mapping(pitch_map_path)
-    proposed, tone_row = generate_events(record, mapping_settings, pitch_map)
-    events, report = repair_events(proposed, settings.min_midi, settings.max_midi, tone_row)
+    proposed, tone_rows, codec = generate_events(record, mapping_settings, pitch_map)
+    events, report = repair_events(proposed, settings.min_midi, settings.max_midi, tone_rows, codec)
     if not report.passed:
         details = "; ".join(v.message for v in report.violations_after[:4])
         raise ValueError(f"GVR 最终检查未通过，未发布音频：{details}")
@@ -137,8 +140,10 @@ def run_pipeline(filename: str, data: bytes, settings: SonificationSettings, pit
         seed=settings.seed,
     )
     title = f"{record.name} - BioSound GVR"
-    musicxml = events_to_musicxml(events, title, settings.tempo, (settings.meter_beats, settings.meter_beat_type))
-    midi = events_to_midi(events, settings.tempo)
+    musicxml = events_to_musicxml(
+        events, title, settings.tempo, (settings.meter_beats, settings.meter_beat_type), codec_metadata=codec
+    )
+    midi = events_to_midi(events, settings.tempo, codec_metadata=codec)
     summary = {
         "record_name": record.name,
         "data_type": record.data_type,
@@ -153,7 +158,7 @@ def run_pipeline(filename: str, data: bytes, settings: SonificationSettings, pit
             }
             for voice_id in sorted({event.voice_id for event in events})
         },
-        "downsample_stride": max(1, int(np.ceil(record.length / settings.max_events))),
+        "downsample_stride": 1 if codec else max(1, int(np.ceil(record.length / settings.max_events))),
         "pitch_mode": settings.pitch_mode,
         "tempo": settings.tempo,
         "meter": f"{settings.meter_beats}/{settings.meter_beat_type}",
@@ -162,6 +167,9 @@ def run_pipeline(filename: str, data: bytes, settings: SonificationSettings, pit
         "mean_mitochondrial_fraction": round(mean_mito, 5),
         "nma_available": bool(nma.get("available")),
         "texture_density": settings.texture_density,
+        "lossless_codec": bool(codec),
+        "codec_blocks": int(codec["block_count"]) if codec else 0,
+        "codec_version": codec["codec_version"] if codec else None,
         "scientific_scope": "可追溯的规则与相对物理特征声学化；不是分子真实声波的直接录音。",
     }
     metadata = {**summary, "record_metadata": record.metadata, "audio": audio_info, "nma": nma}

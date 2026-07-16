@@ -10,6 +10,7 @@ from collections import defaultdict
 from pathlib import Path
 from xml.etree.ElementTree import Element, ElementTree, SubElement, indent
 
+from .codec import compact_codec_json
 from .models import GVRReport, MusicEvent
 
 
@@ -114,7 +115,13 @@ def _measures(events: list[MusicEvent], capacity: float) -> list[list[dict]]:
     return measures or [[{"rest": True, "duration": capacity, "tie_start": False, "tie_stop": False, "show_lyric": False}]]
 
 
-def events_to_musicxml(events: list[MusicEvent], title: str, tempo: int, meter: tuple[int, int]) -> bytes:
+def events_to_musicxml(
+    events: list[MusicEvent],
+    title: str,
+    tempo: int,
+    meter: tuple[int, int],
+    codec_metadata: dict | None = None,
+) -> bytes:
     beats, beat_type = meter
     capacity = beats * 4.0 / beat_type
     voices = _voice_groups(events)
@@ -125,6 +132,9 @@ def events_to_musicxml(events: list[MusicEvent], title: str, tempo: int, meter: 
     SubElement(identification, "creator", type="software").text = "BioSound GVR Orchestral Edition"
     encoding = SubElement(identification, "encoding")
     SubElement(encoding, "software").text = "Traceable multimodal biological musification"
+    if codec_metadata:
+        miscellaneous = SubElement(identification, "miscellaneous")
+        SubElement(miscellaneous, "miscellaneous-field", name="biosound-codec").text = compact_codec_json(codec_metadata)
     part_list = SubElement(score, "part-list")
 
     for part_number, (voice_id, voice_events) in enumerate(voices, 1):
@@ -228,9 +238,17 @@ def _track_chunk(messages: list[tuple[int, int, bytes]]) -> bytes:
     return b"MTrk" + struct.pack(">I", len(track)) + bytes(track)
 
 
-def events_to_midi(events: list[MusicEvent], tempo: int, ticks_per_quarter: int = 480) -> bytes:
+def events_to_midi(
+    events: list[MusicEvent],
+    tempo: int,
+    ticks_per_quarter: int = 480,
+    codec_metadata: dict | None = None,
+) -> bytes:
     microseconds = int(60_000_000 / max(1, tempo))
     tempo_messages = [(0, 0, b"\xff\x51\x03" + microseconds.to_bytes(3, "big"))]
+    if codec_metadata:
+        payload = ("BIOSOUND_CODEC:" + compact_codec_json(codec_metadata)).encode("ascii")
+        tempo_messages.append((0, 1, b"\xff\x01" + _vlq(len(payload)) + payload))
     tracks = [_track_chunk(tempo_messages)]
     for voice_index, (voice_id, voice_events) in enumerate(_voice_groups(events)):
         channel = voice_index if voice_index < 9 else voice_index + 1

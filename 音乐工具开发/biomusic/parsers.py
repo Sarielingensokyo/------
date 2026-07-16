@@ -20,7 +20,8 @@ AA3_TO_1 = {
 
 
 def _clean_sequence(text: str) -> str:
-    return re.sub(r"[^A-Za-z]", "", text).upper()
+    # Keep the standard FASTA stop marker so the protein codec can round-trip it.
+    return re.sub(r"[^A-Za-z*_]", "", text).upper()
 
 
 def detect_sequence_type(sequence: str) -> str:

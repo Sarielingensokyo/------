@@ -6,6 +6,7 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
+from biomusic.codec import decode_artifact
 from biomusic.exporters import ORCHESTRAL_LABELS, musicxml_to_pdf
 from biomusic.parsers import parse_uploaded
 from biomusic.pipeline import SonificationSettings, run_pipeline
@@ -113,14 +114,20 @@ with st.sidebar:
         except Exception as exc:
             st.error(str(exc))
 
-    pitch_mode = st.selectbox("音高策略", ["生物物理映射", "文献氨基酸映射", "十二音列 GVR"])
+    pitch_mode = st.selectbox("音高策略", ["生物物理映射", "文献氨基酸映射", "可逆十二音列编解码"])
     st.caption("所有试听与 MIDI 音色仅使用古典管弦乐器：木管、弦乐、圆号和竖琴。")
     scale_name = st.selectbox("调式", ["多利亚调式", "五声音阶", "自然小调", "半音阶"])
-    row_form = st.selectbox("十二音列形式", ["P", "I", "R", "RI"], disabled=pitch_mode != "十二音列 GVR")
+    row_form = st.selectbox("十二音列呈现形式", ["P", "I", "R", "RI"], disabled=pitch_mode != "可逆十二音列编解码")
+    if pitch_mode == "可逆十二音列编解码":
+        st.caption("DNA/RNA 每 12 个碱基、蛋白质每 6 个残基编码为一条音列；P/I/R/RI 会写入元数据并在解码前逆变换。")
     tempo = st.slider("速度（四分音符/分钟）", 48, 160, 96)
     meter = st.selectbox("拍号", ["4/4", "3/4", "6/8", "5/4"])
     meter_beats, meter_beat_type = map(int, meter.split("/"))
-    max_events = st.slider("最多生成事件", 24, 600, 240, step=12)
+    max_events = st.slider(
+        "最多生成事件", 24, 600, 240, step=12,
+        disabled=pitch_mode == "可逆十二音列编解码",
+        help="可逆模式必须保留全部载体音符，因此不会抽样；此上限仅用于其他映射模式。",
+    )
     texture_density = st.slider(
         "古典编配层数",
         1, 6, 6,
@@ -160,6 +167,29 @@ if run:
             st.session_state.pop("score_pdf_message", None)
     except Exception as exc:
         st.error(f"生成失败：{exc}")
+
+
+with st.expander("从平台产物还原 DNA / RNA / 蛋白质序列", expanded=False):
+    st.caption("严格解码平台导出的 GVR JSON、MusicXML 或 MIDI。WAV 不作为无损载体；非法音列不会被静默修复。")
+    encoded_upload = st.file_uploader(
+        "上传待解码文件", type=["json", "musicxml", "xml", "mid", "midi"], key="codec_decoder"
+    )
+    if encoded_upload and st.button("严格验证并解码", key="decode_codec"):
+        try:
+            decoded_sequence, decoded_meta, decoded_rows = decode_artifact(encoded_upload.name, encoded_upload.getvalue())
+            st.session_state["decoded_codec"] = (decoded_sequence, decoded_meta, decoded_rows)
+        except Exception as exc:
+            st.session_state.pop("decoded_codec", None)
+            st.error(f"解码失败：{exc}")
+    if st.session_state.get("decoded_codec"):
+        decoded_sequence, decoded_meta, decoded_rows = st.session_state["decoded_codec"]
+        st.success(f"校验通过：恢复 {len(decoded_sequence)} 个符号，共 {len(decoded_rows)} 个载体块。")
+        st.code(decoded_sequence)
+        extension = "faa" if decoded_meta["data_type"] == "protein" else ("fna" if decoded_meta["data_type"] == "dna" else "fa")
+        fasta = f">decoded_{decoded_meta['data_type']}\n{decoded_sequence}\n".encode("utf-8")
+        st.download_button("下载还原 FASTA", fasta, f"decoded_sequence.{extension}", "text/plain")
+        with st.expander("编解码元数据"):
+            st.json(decoded_meta)
 
 
 result = st.session_state.get("result")
@@ -220,7 +250,7 @@ with workbench:
         st.download_button("下载 MusicXML", result.musicxml, f"{safe_name}.musicxml", "application/vnd.recordare.musicxml+xml", use_container_width=True)
         st.download_button("下载音符溯源 CSV", result.trace_csv, f"{safe_name}_trace.csv", "text/csv", use_container_width=True)
         st.download_button("下载 GVR 报告 JSON", result.report_json, f"{safe_name}_gvr.json", "application/json", use_container_width=True)
-        manual_path = ROOT / "BioSound_GVR多声部管弦乐版平台功能与原理说明.docx"
+        manual_path = ROOT / "BioSound_GVR可逆十二音列版平台功能与原理说明.docx"
         if manual_path.exists():
             st.download_button(
                 "下载完整平台说明手册",
@@ -271,7 +301,9 @@ with mapping_tab:
         check_df = pd.DataFrame([{"规则": k, "结果": "通过" if v else "失败"} for k, v in result.report.checks.items()])
         st.dataframe(check_df, use_container_width=True, hide_index=True)
         if result.report.tone_row:
-            st.code("Prime/row form: " + " – ".join(map(str, result.report.tone_row)))
+            st.code("载体块 1: " + " – ".join(map(str, result.report.tone_row)))
+        if result.report.tone_rows and len(result.report.tone_rows) > 1:
+            st.caption(f"共 {len(result.report.tone_rows)} 个独立载体块；完整音列保存在 GVR JSON、MusicXML 和 MIDI 中。")
     with right:
         st.subheader("修复日志")
         if result.report.repairs:
@@ -301,3 +333,9 @@ with science_tab:
         "平台采用十二音列论文的事件记录、确定性验证、局部修复、最终发布门控和可审计轨迹，并依据《Transform from genes to music》综述实现模态特异的分层编配。"
         "当前生成器是可复现规则系统，不调用在线 LLM；启动时不需要邮箱、账号、API 密钥或网络连接。"
     )
+    if result.report.codec:
+        st.subheader("可逆载体边界")
+        st.write(
+            "只有 V1 生物主旋律的连续十二音级块参与解码；对位、低音、圆号、中提琴与竖琴均为表现层。"
+            "未修改且保留元数据的 JSON、MusicXML、MIDI 可严格往返；WAV、丢失元数据或越界编辑不承诺无损。"
+        )
