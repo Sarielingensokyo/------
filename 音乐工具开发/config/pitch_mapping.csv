@@ -1,0 +1,22 @@
+symbol,label,midi,scientific_pitch,status,source
+A,Ala,81,A5,inferred,Spinning Melodies reconstruction
+R,Arg,74,D5,explicit,Spinning Melodies supplement
+N,Asn,65,F4,extended_inference,physicochemical extension
+D,Asp,62,D4,explicit,Spinning Melodies supplement
+C,Cys,61,C#4,extended_inference,physicochemical extension
+Q,Gln,63,Eb4,explicit,Spinning Melodies supplement
+E,Glu,76,E5,explicit,Spinning Melodies supplement
+G,Gly,79,G5,explicit,Spinning Melodies supplement
+H,His,71,B4,explicit,Spinning Melodies supplement
+I,Ile,68,Ab4,extended_inference,physicochemical extension
+L,Leu,80,Ab5,explicit,Spinning Melodies supplement
+K,Lys,78,F#5,explicit,Spinning Melodies supplement
+M,Met,64,E4,explicit,Spinning Melodies supplement
+F,Phe,77,F5,explicit,Spinning Melodies supplement
+P,Pro,75,Eb5,explicit,Spinning Melodies supplement
+S,Ser,70,Bb4,explicit,Spinning Melodies supplement
+T,Thr,72,C5,explicit_from_TS,Spinning Melodies supplement
+W,Trp,68,Ab4,extended_inference,physicochemical extension
+Y,Tyr,90,F#6,explicit,Spinning Melodies supplement
+V,Val,73,Db5,explicit,Spinning Melodies supplement
+X,Unknown,60,C4,fallback,software default

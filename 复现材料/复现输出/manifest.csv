@@ -1,0 +1,5 @@
+﻿piece,construct,fiber_result,beats,beat_type,tempo_qpm,form,events_before_tie_split,measures,musicxml
+1,HAB3,forms fibers,6,8,114,H-A-B-B-B-TS,122,24,01_HAB3_rule_reconstruction.musicxml
+2,HA3B,doesn't form fibers,3,4,108,H-A-A-A-B-TS,106,22,02_HA3B_rule_reconstruction.musicxml
+3,HAB3,forms fibers,6,8,116,H-A-B-B-B-B-A-B-B-TS,194,36,03_HAB3_rule_reconstruction.musicxml
+4,HA3B,doesn't form fibers,3,4,108,H-A-A-A-B-A-B-A-A-TS-CODA,166,32,04_HA3B_rule_reconstruction.musicxml

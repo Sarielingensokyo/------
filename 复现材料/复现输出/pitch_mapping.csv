@@ -1,0 +1,17 @@
+﻿amino_acid,step,alter,octave,status
+T,C,0,5,explicit_from_TS
+V,D,-1,5,explicit
+D,D,0,4,explicit
+R,D,0,5,explicit
+Q,E,-1,4,explicit
+P,E,-1,5,explicit
+M,E,0,4,explicit
+E,E,0,5,explicit
+F,F,0,5,explicit
+K,F,1,5,explicit
+Y,F,1,6,explicit
+G,G,0,5,explicit
+L,A,-1,5,explicit
+A,A,0,5,inferred
+S,B,-1,4,explicit
+H,B,0,4,explicit
