@@ -1,0 +1,324 @@
+{
+  "metadata": {
+    "record_name": "transcriptomic_table",
+    "data_type": "transcriptomics",
+    "source_items": 240,
+    "musical_events": 232,
+    "voice_count": 6,
+    "voices": {
+      "V1_melody": {
+        "events": 120,
+        "instrument": "clarinet",
+        "role": "foreground_melody"
+      },
+      "V2_counterpoint": {
+        "events": 60,
+        "instrument": "violin",
+        "role": "derived_counterpoint"
+      },
+      "V3_bass": {
+        "events": 15,
+        "instrument": "cello",
+        "role": "structural_bass"
+      },
+      "V4_horn_harmony": {
+        "events": 8,
+        "instrument": "french_horn",
+        "role": "structural_harmony"
+      },
+      "V5_viola_harmony": {
+        "events": 8,
+        "instrument": "viola",
+        "role": "inner_harmony"
+      },
+      "V6_harp_accents": {
+        "events": 21,
+        "instrument": "orchestral_harp",
+        "role": "structural_accent"
+      }
+    },
+    "downsample_stride": 2,
+    "pitch_mode": "生物物理调式映射（推荐）",
+    "scale_name": "多利亚调式",
+    "root_midi": 60,
+    "strict_modal": true,
+    "allowed_pitch_classes": [
+      0,
+      2,
+      3,
+      5,
+      7,
+      9,
+      10
+    ],
+    "tempo": 92,
+    "meter": "4/4",
+    "gvr_passed": true,
+    "repairs": 0,
+    "mean_mitochondrial_fraction": 0.0224,
+    "nma_available": false,
+    "texture_density": 6,
+    "audio_backend": "soundfont",
+    "lossless_codec": false,
+    "codec_blocks": 0,
+    "codec_version": null,
+    "scientific_scope": "可追溯的规则与相对物理特征声学化；不是分子真实声波的直接录音。",
+    "record_metadata": {
+      "source_format": "CSV",
+      "table_shape": [
+        240,
+        11915
+      ],
+      "numeric_columns": 11914,
+      "mitochondrial_columns": 13,
+      "hvg_columns": [
+        "CD74",
+        "RPS3",
+        "MT-CO1",
+        "RPL3",
+        "RPS18",
+        "RPS12",
+        "RPL19",
+        "RPL13A",
+        "RPS6",
+        "RPS2",
+        "RPL10",
+        "RPL13",
+        "S100A9",
+        "LYZ",
+        "ACTB",
+        "B2M",
+        "MALAT1",
+        "FTH1",
+        "TMSB4X",
+        "FTL"
+      ],
+      "qc_note": "细胞为行、基因为列的启发式解释；若数据方向相反，请先转置。"
+    },
+    "audio": {
+      "duration_seconds": 72.476,
+      "requested_duration_seconds": 72.476,
+      "truncated": false,
+      "rendered_events": 232,
+      "sample_rate": 44100,
+      "channels": 2,
+      "qc_lowpass_cutoff_hz": 9498.4,
+      "voice_count": 6,
+      "voice_event_counts": {
+        "V1_melody": 120,
+        "V2_counterpoint": 60,
+        "V3_bass": 15,
+        "V4_horn_harmony": 8,
+        "V5_viola_harmony": 8,
+        "V6_harp_accents": 21
+      },
+      "preview_source": "SoundFont 2 sample playback through bundled sf2-loader/FluidSynth",
+      "audio_backend": "soundfont",
+      "soundfont_status": {
+        "TimGM6mb": {
+          "path": "assets\\soundfonts\\banks\\TimGM.sf2",
+          "size_bytes": 5969788,
+          "size_mib": 5.69,
+          "valid": true,
+          "error": ""
+        },
+        "FreePats Clarinet": {
+          "path": "assets\\soundfonts\\banks\\Clarinet-SF2-20190818\\Clarinet-20190818.sf2",
+          "size_bytes": 7394048,
+          "size_mib": 7.05,
+          "valid": true,
+          "error": ""
+        },
+        "FreePats Concert Harp": {
+          "path": "assets\\soundfonts\\banks\\ConcertHarp-small-SF2-20200702\\ConcertHarp-small-20200702.sf2",
+          "size_bytes": 9233446,
+          "size_mib": 8.81,
+          "valid": true,
+          "error": ""
+        }
+      },
+      "soundfont_assignments": {
+        "V1_melody": {
+          "channel": 0,
+          "timbre": "clarinet",
+          "soundfont": "FreePats Clarinet",
+          "bank": 0,
+          "preset": 0
+        },
+        "V2_counterpoint": {
+          "channel": 1,
+          "timbre": "violin",
+          "soundfont": "TimGM6mb",
+          "bank": 0,
+          "preset": 40
+        },
+        "V3_bass": {
+          "channel": 2,
+          "timbre": "cello",
+          "soundfont": "TimGM6mb",
+          "bank": 0,
+          "preset": 42
+        },
+        "V4_horn_harmony": {
+          "channel": 3,
+          "timbre": "french_horn",
+          "soundfont": "TimGM6mb",
+          "bank": 0,
+          "preset": 60
+        },
+        "V5_viola_harmony": {
+          "channel": 4,
+          "timbre": "viola",
+          "soundfont": "TimGM6mb",
+          "bank": 0,
+          "preset": 41
+        },
+        "V6_harp_accents": {
+          "channel": 5,
+          "timbre": "orchestral_harp",
+          "soundfont": "FreePats Concert Harp",
+          "bank": 0,
+          "preset": 0
+        }
+      },
+      "nma_sampled_background_notes": [],
+      "nma_scale_quantized": true,
+      "strict_scale_pitch_classes": [
+        0,
+        2,
+        3,
+        5,
+        7,
+        9,
+        10
+      ]
+    },
+    "nma": {
+      "available": false,
+      "reason": "当前输入没有 PDB 三维坐标或 NMA 已关闭。"
+    },
+    "sequence_payload": null
+  },
+  "gvr": {
+    "proposed_count": 232,
+    "retained_count": 232,
+    "passed": true,
+    "checks": {
+      "H_duration": true,
+      "H_event_id": true,
+      "H_mapping": true,
+      "H_parent": true,
+      "H_register": true,
+      "H_scale": true,
+      "H_timeline": true,
+      "H_trace": true,
+      "coverage": true,
+      "polyphony": true,
+      "independent_voices": true
+    },
+    "tone_row": null,
+    "tone_rows": null,
+    "codec": null,
+    "violations_before": [
+      {
+        "event_id": 2,
+        "rule": "S_unison_clarity",
+        "severity": "soft",
+        "message": "多个声部在同一拍进入同一实际音高；保留为允许的管弦乐齐奏。",
+        "repaired": false,
+        "action": ""
+      },
+      {
+        "event_id": 93,
+        "rule": "S_unison_clarity",
+        "severity": "soft",
+        "message": "多个声部在同一拍进入同一实际音高；保留为允许的管弦乐齐奏。",
+        "repaired": false,
+        "action": ""
+      },
+      {
+        "event_id": 124,
+        "rule": "S_unison_clarity",
+        "severity": "soft",
+        "message": "多个声部在同一拍进入同一实际音高；保留为允许的管弦乐齐奏。",
+        "repaired": false,
+        "action": ""
+      },
+      {
+        "event_id": 155,
+        "rule": "S_unison_clarity",
+        "severity": "soft",
+        "message": "多个声部在同一拍进入同一实际音高；保留为允许的管弦乐齐奏。",
+        "repaired": false,
+        "action": ""
+      },
+      {
+        "event_id": 221,
+        "rule": "S_unison_clarity",
+        "severity": "soft",
+        "message": "多个声部在同一拍进入同一实际音高；保留为允许的管弦乐齐奏。",
+        "repaired": false,
+        "action": ""
+      },
+      {
+        "event_id": 228,
+        "rule": "S_unison_clarity",
+        "severity": "soft",
+        "message": "多个声部在同一拍进入同一实际音高；保留为允许的管弦乐齐奏。",
+        "repaired": false,
+        "action": ""
+      }
+    ],
+    "violations_after": [
+      {
+        "event_id": 2,
+        "rule": "S_unison_clarity",
+        "severity": "soft",
+        "message": "多个声部在同一拍进入同一实际音高；保留为允许的管弦乐齐奏。",
+        "repaired": false,
+        "action": ""
+      },
+      {
+        "event_id": 93,
+        "rule": "S_unison_clarity",
+        "severity": "soft",
+        "message": "多个声部在同一拍进入同一实际音高；保留为允许的管弦乐齐奏。",
+        "repaired": false,
+        "action": ""
+      },
+      {
+        "event_id": 124,
+        "rule": "S_unison_clarity",
+        "severity": "soft",
+        "message": "多个声部在同一拍进入同一实际音高；保留为允许的管弦乐齐奏。",
+        "repaired": false,
+        "action": ""
+      },
+      {
+        "event_id": 155,
+        "rule": "S_unison_clarity",
+        "severity": "soft",
+        "message": "多个声部在同一拍进入同一实际音高；保留为允许的管弦乐齐奏。",
+        "repaired": false,
+        "action": ""
+      },
+      {
+        "event_id": 221,
+        "rule": "S_unison_clarity",
+        "severity": "soft",
+        "message": "多个声部在同一拍进入同一实际音高；保留为允许的管弦乐齐奏。",
+        "repaired": false,
+        "action": ""
+      },
+      {
+        "event_id": 228,
+        "rule": "S_unison_clarity",
+        "severity": "soft",
+        "message": "多个声部在同一拍进入同一实际音高；保留为允许的管弦乐齐奏。",
+        "repaired": false,
+        "action": ""
+      }
+    ],
+    "repairs": []
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "source": "10x Genomics PBMC3K filtered gene-barcode matrix",
+  "source_url": "https://cf.10xgenomics.com/samples/cell/pbmc3k/pbmc3k_filtered_gene_bc_matrices.tar.gz",
+  "original_shape_genes_by_cells": [
+    32738,
+    2700
+  ],
+  "platform_shape_cells_by_columns": [
+    240,
+    11915
+  ],
+  "selected_cells": 240,
+  "selected_numeric_genes": 11914,
+  "selected_mitochondrial_genes": [
+    "MT-ND1",
+    "MT-ND2",
+    "MT-CO1",
+    "MT-CO2",
+    "MT-ATP8",
+    "MT-ATP6",
+    "MT-CO3",
+    "MT-ND3",
+    "MT-ND4L",
+    "MT-ND4",
+    "MT-ND5",
+    "MT-ND6",
+    "MT-CYB"
+  ],
+  "full_dataset_qc": {
+    "total_counts_median": 2197.0,
+    "detected_genes_median": 817.0,
+    "mitochondrial_fraction_median": 0.02029639227921925,
+    "mitochondrial_fraction_p95": 0.04014657850203296
+  },
+  "selection_rule": "240 cells evenly sampled across a deterministic QC ordering; all genes expressed in at least one selected cell are retained so QC denominators remain exact.",
+  "platform_interpretation": "rows=cells; numeric columns=genes; MT-* columns drive mitochondrial_fraction; detected genes and top-variance genes drive QC/HVG features."
+}

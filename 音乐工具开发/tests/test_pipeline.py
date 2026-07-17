@@ -210,6 +210,14 @@ class PipelineTests(unittest.TestCase):
         self.assertIn("uncertainty", association.features)
         self.assertIn("uncertainty", metabolomics.features)
 
+    def test_expression_gene_name_containing_methyl_is_not_epigenomics(self):
+        record = parse_uploaded(
+            "expression.csv",
+            b"cell,MT-CO1,METHYL2,ACTB\nc1,3,8,2\nc2,1,0,7\n",
+        )[0]
+        self.assertEqual(record.data_type, "transcriptomics")
+        self.assertGreater(record.features["mitochondrial_fraction"][0], 0)
+
 
 if __name__ == "__main__":
     unittest.main()

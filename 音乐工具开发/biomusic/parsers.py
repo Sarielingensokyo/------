@@ -246,7 +246,16 @@ def parse_csv(data: bytes | str) -> list[BioRecord]:
             },
         )]
 
-    methyl_col = next((c for c in numeric.columns if any(k in str(c).lower() for k in ("methyl", "cpg", "h3k", "chip", "chromatin", "beta_value"))), None)
+    epigenomic_exact = {
+        "methylation", "methylation_beta", "methylation_value", "beta_value",
+        "cpg_beta", "cpg_methylation", "chip_signal", "chromatin_signal",
+        "accessibility", "atac_signal",
+    }
+    methyl_col = next((
+        c for c in numeric.columns
+        if str(c).lower() in epigenomic_exact
+        or str(c).lower().startswith(("methylation_", "cpg_", "h3k", "h4k", "chip_", "chromatin_", "atac_"))
+    ), None)
     if methyl_col is not None:
         values = _normalise(numeric[methyl_col].to_numpy(float))
         labels = df[pos_col].astype(str).tolist() if pos_col is not None else [str(i + 1) for i in range(len(df))]

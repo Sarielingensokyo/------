@@ -1,0 +1,99 @@
+{
+  "work_name": "GSM484237_小肠甲基化_弗里几亚",
+  "input_csv": "GSM484237_甲基化平台输入_真实坐标.csv",
+  "settings": {
+    "pitch_mode": "生物物理调式映射（推荐）",
+    "scale_name": "弗里几亚调式",
+    "root_midi": 62,
+    "tempo": 76,
+    "meter": "4/4",
+    "texture_density": 6
+  },
+  "result_summary": {
+    "record_name": "epigenomic_track",
+    "data_type": "epigenomics",
+    "source_items": 1413,
+    "musical_events": 414,
+    "voice_count": 6,
+    "voices": {
+      "V1_melody": {
+        "events": 177,
+        "instrument": "viola",
+        "role": "foreground_melody"
+      },
+      "V2_counterpoint": {
+        "events": 88,
+        "instrument": "violin",
+        "role": "derived_counterpoint"
+      },
+      "V3_bass": {
+        "events": 23,
+        "instrument": "cello",
+        "role": "structural_bass"
+      },
+      "V4_horn_harmony": {
+        "events": 12,
+        "instrument": "french_horn",
+        "role": "structural_harmony"
+      },
+      "V5_viola_harmony": {
+        "events": 12,
+        "instrument": "viola",
+        "role": "inner_harmony"
+      },
+      "V6_harp_accents": {
+        "events": 102,
+        "instrument": "orchestral_harp",
+        "role": "structural_accent"
+      }
+    },
+    "downsample_stride": 8,
+    "pitch_mode": "生物物理调式映射（推荐）",
+    "scale_name": "弗里几亚调式",
+    "root_midi": 62,
+    "strict_modal": true,
+    "allowed_pitch_classes": [
+      0,
+      2,
+      3,
+      5,
+      7,
+      9,
+      10
+    ],
+    "tempo": 76,
+    "meter": "4/4",
+    "gvr_passed": true,
+    "repairs": 0,
+    "mean_mitochondrial_fraction": 0.0,
+    "nma_available": false,
+    "texture_density": 6,
+    "audio_backend": "soundfont",
+    "lossless_codec": false,
+    "codec_blocks": 0,
+    "codec_version": null,
+    "scientific_scope": "可追溯的规则与相对物理特征声学化；不是分子真实声波的直接录音。"
+  },
+  "gvr_checks": {
+    "H_duration": true,
+    "H_event_id": true,
+    "H_mapping": true,
+    "H_parent": true,
+    "H_register": true,
+    "H_scale": true,
+    "H_timeline": true,
+    "H_trace": true,
+    "coverage": true,
+    "polyphony": true,
+    "independent_voices": true
+  },
+  "pdf_status": "MuseScore 未能生成 PDF（退出码 1320）：failed open log file: C:/Users/34591/AppData/Local/MuseScore/MuseScore4/logs/MuseScore_260717_152552.log\r\n[23544:60976:20260717,152552.335:ERROR file_io_win.cc:180] CreateFile C:/Users/34591/AppData/Local/MuseScore/MuseScore4/logs/dumps\\settings.dat: 拒绝访问。 (5)",
+  "files": [
+    "GSM484237_小肠甲基化_弗里几亚.mid",
+    "GSM484237_小肠甲基化_弗里几亚.musicxml",
+    "GSM484237_小肠甲基化_弗里几亚.wav",
+    "GSM484237_小肠甲基化_弗里几亚_GVR报告.json",
+    "GSM484237_小肠甲基化_弗里几亚_作品说明.json",
+    "GSM484237_小肠甲基化_弗里几亚_音符溯源.csv"
+  ]
+}
