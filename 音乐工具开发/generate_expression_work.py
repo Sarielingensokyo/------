@@ -10,8 +10,8 @@ from biomusic.pipeline import SonificationSettings, run_pipeline
 
 ROOT = Path(__file__).resolve().parent
 SOURCE = ROOT / "examples" / "example_structure.pdb"
-OUTPUT = ROOT / "generated_works" / "结构呼吸_利底亚版"
-STEM = "结构呼吸_利底亚版"
+OUTPUT = ROOT / "generated_works" / "结构呼吸_利底亚_SF2版"
+STEM = "结构呼吸_利底亚_SF2版"
 
 
 def main() -> None:
@@ -30,6 +30,7 @@ def main() -> None:
         enable_nma=True,
         max_audio_seconds=120.0,
         seed=73,
+        audio_backend="soundfont",
     )
     result = run_pipeline(SOURCE.name, SOURCE.read_bytes(), settings)
 
@@ -75,8 +76,15 @@ def main() -> None:
             "texture_density": settings.texture_density,
             "counterpoint_strength": settings.counterpoint_strength,
             "nma_enabled": settings.enable_nma,
+            "audio_backend": settings.audio_backend,
         },
         "summary": result.summary,
+        "soundfont_audio": {
+            "backend": result.audio_info.get("audio_backend"),
+            "sample_rate": result.audio_info.get("sample_rate"),
+            "assignments": result.audio_info.get("soundfont_assignments", {}),
+            "nma_sampled_background_notes": result.audio_info.get("nma_sampled_background_notes", []),
+        },
         "feature_sources": {
             "sasa": result.record.metadata.get("sasa_source"),
             "dihedral": result.record.metadata.get("dihedral_source"),

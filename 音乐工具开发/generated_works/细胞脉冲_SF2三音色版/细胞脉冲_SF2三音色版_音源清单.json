@@ -1,0 +1,52 @@
+{
+  "title": "细胞脉冲_SF2三音色版",
+  "source": "examples\\example_expression.csv",
+  "audio_backend": "soundfont",
+  "sample_rate": 44100,
+  "soundfont_assignments": {
+    "V1_melody": {
+      "channel": 0,
+      "timbre": "clarinet",
+      "soundfont": "FreePats Clarinet",
+      "bank": 0,
+      "preset": 0
+    },
+    "V2_counterpoint": {
+      "channel": 1,
+      "timbre": "violin",
+      "soundfont": "TimGM6mb",
+      "bank": 0,
+      "preset": 40
+    },
+    "V3_bass": {
+      "channel": 2,
+      "timbre": "cello",
+      "soundfont": "TimGM6mb",
+      "bank": 0,
+      "preset": 42
+    },
+    "V4_horn_harmony": {
+      "channel": 3,
+      "timbre": "french_horn",
+      "soundfont": "TimGM6mb",
+      "bank": 0,
+      "preset": 60
+    },
+    "V5_viola_harmony": {
+      "channel": 4,
+      "timbre": "viola",
+      "soundfont": "TimGM6mb",
+      "bank": 0,
+      "preset": 41
+    },
+    "V6_harp_accents": {
+      "channel": 5,
+      "timbre": "orchestral_harp",
+      "soundfont": "FreePats Concert Harp",
+      "bank": 0,
+      "preset": 0
+    }
+  },
+  "qc_lowpass_cutoff_hz": 7343.1,
+  "pdf_export": "MuseScore 未能生成 PDF（退出码 1320）：failed open log file: C:/Users/34591/AppData/Local/MuseScore/MuseScore4/logs/MuseScore_260717_112658.log\r\n[68540:45964:20260717,112659.050:ERROR file_io_win.cc:180] CreateFile C:/Users/34591/AppData/Local/MuseScore/MuseScore4/logs/dumps\\settings.dat: 拒绝访问。 (5)"
+}

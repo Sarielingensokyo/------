@@ -34,6 +34,26 @@ def _scale_interval(scale_name: str, preferred: int) -> int:
     scale = SCALES.get(scale_name, SCALES["多利亚调式"])
     return min(scale, key=lambda value: (abs(value - preferred), value))
 
+
+STRICT_MODAL_MODES = {"生物物理调式映射（推荐）", "生物物理映射"}
+
+
+def scale_pitch_classes(scale_name: str, root_midi: int) -> tuple[int, ...]:
+    """Return the exact pitch-class set allowed by a tonic and scale."""
+    scale = SCALES.get(scale_name, SCALES["多利亚调式"])
+    return tuple((root_midi + interval) % 12 for interval in scale)
+
+
+def _scale_degree_pc(pc: int, steps: int, settings: "MappingSettings") -> int:
+    """Move by scale degrees, never by a fixed chromatic interval."""
+    scale = SCALES.get(settings.scale_name, SCALES["多利亚调式"])
+    root_pc = settings.root_midi % 12
+    relative = (pc - root_pc) % 12
+    if relative not in scale:
+        relative = min(scale, key=lambda value: (min((value - relative) % 12, (relative - value) % 12), value))
+    degree = scale.index(relative)
+    return (root_pc + scale[(degree + steps) % len(scale)]) % 12
+
 CLASSICAL_TIMBRES = {
     "flute", "oboe", "clarinet", "bassoon", "french_horn",
     "violin", "viola", "cello", "orchestral_harp",
@@ -171,6 +191,7 @@ def _base_events(
     stride = max(1, int(np.ceil(record.length / settings.max_events)))
     indices = list(range(0, record.length, stride))
     scale = SCALES.get(settings.scale_name, SCALES["多利亚调式"])
+    strict_modal = settings.pitch_mode in STRICT_MODAL_MODES
     events: list[MusicEvent] = []
     onset = 0.0
     melody_timbre = _melody_timbre(record)
@@ -201,7 +222,7 @@ def _base_events(
             midi = _voice_midi(pc, settings.root_midi + 12 * _feature(record, "gc", index, 0), "V1_melody")
             row_position = None
             rule = "碱基身份→调式音级；GC/嘌呤特征→音区和力度"
-        elif record.data_type == "mass_spectrometry":
+        elif record.data_type == "mass_spectrometry" and not strict_modal:
             mz = _feature(record, "mz", index, 0.0)
             pc = int(round(mz)) % 12
             midi = _voice_midi(pc, settings.root_midi + 18 * value, "V1_melody")
@@ -403,6 +424,7 @@ def _orchestrate(
     events = list(melody)
     density = int(np.clip(settings.texture_density, 1, 6))
     total_end = max(e.onset + e.duration for e in melody)
+    strict_modal = settings.pitch_mode in STRICT_MODAL_MODES
 
     if density >= 2:
         step = 2 if settings.counterpoint_strength >= 0.55 else 3
@@ -419,11 +441,21 @@ def _orchestrate(
                 rule = "由主旋律来源派生；I 音列保持音级，轮唱延迟与反向音区形成对位"
                 row_form = "I"
             else:
-                contour = parent.midi - melody[max(0, parent.parent_event_id or 0)].midi if parent.parent_event_id else 0
-                interval = 3 if i % 2 == 0 else 4
-                pc = (parent.midi - interval - int(np.sign(contour))) % 12
+                if strict_modal:
+                    parent_index = min(len(melody) - 1, 1 + i * step)
+                    previous = melody[max(0, parent_index - 1)]
+                    contour = int(np.sign(parent.midi - previous.midi))
+                    degree_steps = -2 if contour >= 0 else 2
+                    if contour == 0 and i % 2:
+                        degree_steps = 2
+                    pc = _scale_degree_pc(parent.midi % 12, degree_steps, settings)
+                    rule = "由同一生物事件延迟派生；按调式音级作反向三度对位（H_scale 硬约束）"
+                else:
+                    contour = 0
+                    interval = 3 if i % 2 == 0 else 4
+                    pc = (parent.midi - interval) % 12
+                    rule = "由同一生物事件延迟派生；文献音高上的小/大三度形成对位"
                 midi = _voice_midi(pc, 70 - (parent.midi - 66) * settings.counterpoint_strength, "V2_counterpoint")
-                rule = "由同一生物事件延迟派生；小/大三度与反向音区形成可辨识对位"
                 row_form = None
             duration = min(1.5, max(0.5, parent.duration + 0.25))
             duration = min(duration, max(0.25, total_end - onset))
@@ -463,8 +495,12 @@ def _orchestrate(
     if density >= 5:
         for i, parent in enumerate(pads):
             end = pads[i + 1].onset if i + 1 < len(pads) else total_end
-            third = _scale_interval(settings.scale_name, 4)
-            pc = (settings.root_midi + third + (2 if i % 3 == 2 else 0)) % 12
+            if strict_modal:
+                preferred = 6 if i % 3 == 2 else 4
+                pc = (settings.root_midi + _scale_interval(settings.scale_name, preferred)) % 12
+            else:
+                third = _scale_interval(settings.scale_name, 4)
+                pc = (settings.root_midi + third + (2 if i % 3 == 2 else 0)) % 12
             midi = _voice_midi(pc, 62 + 5 * parent.features.get("hydropathy", 0.5), "V5_viola_harmony")
             events.append(_derived(
                 parent, voice_id="V5_viola_harmony", role="inner_harmony", timbre="viola",
@@ -485,18 +521,27 @@ def _orchestrate(
             phrase = settings.breath_every and i % settings.breath_every == 0
             if not (structural_change or salient or phrase) or parent.onset < last_harp_end:
                 continue
-            pcs = [
-                parent.midi % 12,
-                (parent.midi + _scale_interval(settings.scale_name, 4)) % 12,
-                (parent.midi + _scale_interval(settings.scale_name, 7)) % 12,
-            ]
+            if strict_modal:
+                pcs = [
+                    parent.midi % 12,
+                    _scale_degree_pc(parent.midi % 12, 2, settings),
+                    _scale_degree_pc(parent.midi % 12, 4, settings),
+                ]
+                harp_rule = "结构边界/显著性→调式内一、三、五音级琶音（H_scale 硬约束）"
+            else:
+                pcs = [
+                    parent.midi % 12,
+                    (parent.midi + _scale_interval(settings.scale_name, 4)) % 12,
+                    (parent.midi + _scale_interval(settings.scale_name, 7)) % 12,
+                ]
+                harp_rule = "结构边界、接触峰或高显著性位置→竖琴三音结构标记"
             for j, pc in enumerate(pcs):
                 onset = parent.onset + 0.25 * j
                 midi = _voice_midi(pc, 72 + 5 * j, "V6_harp_accents")
                 events.append(_derived(
                     parent, voice_id="V6_harp_accents", role="structural_accent", timbre="orchestral_harp",
                     onset=onset, duration=0.25, midi=midi, velocity=parent.velocity - 5 - 5 * j,
-                    pan=0.08 + 0.18 * j, rule="结构边界、接触峰或高显著性位置→竖琴三音结构标记",
+                    pan=0.08 + 0.18 * j, rule=harp_rule,
                 ))
             last_harp_end = parent.onset + 1.0
 

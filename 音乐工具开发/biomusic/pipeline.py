@@ -11,9 +11,10 @@ import numpy as np
 from .exporters import events_to_midi, events_to_musicxml, report_to_json
 from .features import compute_coarse_nma, enrich_record
 from .gvr import repair_events
-from .mapping import MappingSettings, generate_events, load_pitch_mapping
+from .mapping import STRICT_MODAL_MODES, MappingSettings, generate_events, load_pitch_mapping, scale_pitch_classes
 from .models import BioRecord, GVRReport, MusicEvent
 from .parsers import parse_uploaded
+from .soundfont import SoundFontUnavailable, render_soundfont_wav
 from .synth import render_wav
 
 
@@ -42,6 +43,8 @@ class SonificationSettings:
     max_audio_seconds: float = 150.0
     texture_density: int = 6
     counterpoint_strength: float = 0.7
+    audio_backend: str = "soundfont"
+    allow_procedural_fallback: bool = True
 
 
 @dataclass
@@ -138,21 +141,53 @@ def run_pipeline(filename: str, data: bytes, settings: SonificationSettings, pit
     )
     pitch_map = load_pitch_mapping(pitch_map_path)
     proposed, tone_rows, codec = generate_events(record, mapping_settings, pitch_map)
-    events, report = repair_events(proposed, settings.min_midi, settings.max_midi, tone_rows, codec)
+    strict_modal = settings.pitch_mode in STRICT_MODAL_MODES
+    allowed_pcs = set(scale_pitch_classes(settings.scale_name, settings.root_midi)) if strict_modal else None
+    events, report = repair_events(
+        proposed, settings.min_midi, settings.max_midi, tone_rows, codec,
+        allowed_pitch_classes=allowed_pcs,
+    )
     if not report.passed:
         details = "; ".join(v.message for v in report.violations_after[:4])
         raise ValueError(f"GVR 最终检查未通过，未发布音频：{details}")
 
     mito_values = record.features.get("mitochondrial_fraction", [0.0])
     mean_mito = float(np.mean(mito_values)) if mito_values else 0.0
-    wav, audio_info = render_wav(
-        events,
-        settings.tempo,
-        nma=nma,
-        qc_mito_fraction=mean_mito,
-        max_seconds=settings.max_audio_seconds,
-        seed=settings.seed,
-    )
+    if settings.audio_backend == "soundfont":
+        try:
+            wav, audio_info = render_soundfont_wav(
+                events,
+                settings.tempo,
+                nma=nma,
+                qc_mito_fraction=mean_mito,
+                max_seconds=settings.max_audio_seconds,
+                allowed_pitch_classes=allowed_pcs,
+            )
+        except SoundFontUnavailable as exc:
+            if not settings.allow_procedural_fallback:
+                raise
+            wav, audio_info = render_wav(
+                events,
+                settings.tempo,
+                nma=nma,
+                qc_mito_fraction=mean_mito,
+                max_seconds=settings.max_audio_seconds,
+                seed=settings.seed,
+                allowed_pitch_classes=allowed_pcs,
+            )
+            audio_info["audio_backend"] = "procedural_fallback"
+            audio_info["soundfont_error"] = str(exc)
+    else:
+        wav, audio_info = render_wav(
+            events,
+            settings.tempo,
+            nma=nma,
+            qc_mito_fraction=mean_mito,
+            max_seconds=settings.max_audio_seconds,
+            seed=settings.seed,
+            allowed_pitch_classes=allowed_pcs,
+        )
+        audio_info["audio_backend"] = "procedural"
     title = f"{record.name} - BioSound GVR"
     sequence_payload = None
     if record.data_type in {"dna", "rna", "protein"}:
@@ -187,6 +222,10 @@ def run_pipeline(filename: str, data: bytes, settings: SonificationSettings, pit
         },
         "downsample_stride": 1 if codec else max(1, int(np.ceil(record.length / settings.max_events))),
         "pitch_mode": settings.pitch_mode,
+        "scale_name": settings.scale_name if strict_modal else None,
+        "root_midi": settings.root_midi if strict_modal else None,
+        "strict_modal": strict_modal,
+        "allowed_pitch_classes": sorted(allowed_pcs) if allowed_pcs is not None else None,
         "tempo": settings.tempo,
         "meter": f"{settings.meter_beats}/{settings.meter_beat_type}",
         "gvr_passed": report.passed,
@@ -194,6 +233,7 @@ def run_pipeline(filename: str, data: bytes, settings: SonificationSettings, pit
         "mean_mitochondrial_fraction": round(mean_mito, 5),
         "nma_available": bool(nma.get("available")),
         "texture_density": settings.texture_density,
+        "audio_backend": audio_info.get("audio_backend", settings.audio_backend),
         "lossless_codec": bool(codec),
         "codec_blocks": int(codec["block_count"]) if codec else 0,
         "codec_version": codec["codec_version"] if codec else None,

@@ -1,0 +1,316 @@
+{
+  "metadata": {
+    "record_name": "PDB chain A",
+    "data_type": "protein",
+    "source_items": 12,
+    "musical_events": 38,
+    "voice_count": 6,
+    "voices": {
+      "V1_melody": {
+        "events": 12,
+        "instrument": "oboe",
+        "role": "foreground_melody"
+      },
+      "V2_counterpoint": {
+        "events": 5,
+        "instrument": "violin",
+        "role": "derived_counterpoint"
+      },
+      "V3_bass": {
+        "events": 1,
+        "instrument": "cello",
+        "role": "structural_bass"
+      },
+      "V4_horn_harmony": {
+        "events": 1,
+        "instrument": "french_horn",
+        "role": "structural_harmony"
+      },
+      "V5_viola_harmony": {
+        "events": 1,
+        "instrument": "viola",
+        "role": "inner_harmony"
+      },
+      "V6_harp_accents": {
+        "events": 18,
+        "instrument": "orchestral_harp",
+        "role": "structural_accent"
+      }
+    },
+    "downsample_stride": 1,
+    "pitch_mode": "生物物理调式映射（推荐）",
+    "tempo": 84,
+    "meter": "6/8",
+    "gvr_passed": true,
+    "repairs": 0,
+    "mean_mitochondrial_fraction": 0.0,
+    "nma_available": true,
+    "texture_density": 6,
+    "audio_backend": "soundfont",
+    "lossless_codec": false,
+    "codec_blocks": 0,
+    "codec_version": null,
+    "scientific_scope": "可追溯的规则与相对物理特征声学化；不是分子真实声波的直接录音。",
+    "record_metadata": {
+      "source_format": "PDB",
+      "chain": "A",
+      "secondary_structure_source": "PDB HELIX/SHEET records; unannotated residues are coil",
+      "atom_model": "full heavy-atom records retained when present; CA-only files use explicit feature fallbacks",
+      "heavy_atom_count": 12,
+      "complete_backbone_residues": 0,
+      "sasa_source": "CA contact-density exposure proxy; not atomistic SASA",
+      "dihedral_source": "PDB HELIX/SHEET baseline; insufficient N-CA-C atoms for phi/psi",
+      "b_factor_source": "CA B-factor; predicted-model files may store confidence rather than thermal displacement"
+    },
+    "audio": {
+      "duration_seconds": 9.471,
+      "requested_duration_seconds": 9.471,
+      "truncated": false,
+      "rendered_events": 38,
+      "sample_rate": 44100,
+      "channels": 2,
+      "qc_lowpass_cutoff_hz": 9700.0,
+      "voice_count": 6,
+      "voice_event_counts": {
+        "V1_melody": 12,
+        "V2_counterpoint": 5,
+        "V3_bass": 1,
+        "V4_horn_harmony": 1,
+        "V5_viola_harmony": 1,
+        "V6_harp_accents": 18
+      },
+      "preview_source": "SoundFont 2 sample playback through bundled sf2-loader/FluidSynth",
+      "audio_backend": "soundfont",
+      "soundfont_status": {
+        "TimGM6mb": {
+          "path": "C:\\Users\\34591\\Desktop\\音乐基因转化\\音乐工具开发\\assets\\soundfonts\\banks\\TimGM.sf2",
+          "size_bytes": 5969788,
+          "size_mib": 5.69,
+          "valid": true,
+          "error": ""
+        },
+        "FreePats Clarinet": {
+          "path": "C:\\Users\\34591\\Desktop\\音乐基因转化\\音乐工具开发\\assets\\soundfonts\\banks\\Clarinet-SF2-20190818\\Clarinet-20190818.sf2",
+          "size_bytes": 7394048,
+          "size_mib": 7.05,
+          "valid": true,
+          "error": ""
+        },
+        "FreePats Concert Harp": {
+          "path": "C:\\Users\\34591\\Desktop\\音乐基因转化\\音乐工具开发\\assets\\soundfonts\\banks\\ConcertHarp-small-SF2-20200702\\ConcertHarp-small-20200702.sf2",
+          "size_bytes": 9233446,
+          "size_mib": 8.81,
+          "valid": true,
+          "error": ""
+        }
+      },
+      "soundfont_assignments": {
+        "V1_melody": {
+          "channel": 0,
+          "timbre": "oboe",
+          "soundfont": "TimGM6mb",
+          "bank": 0,
+          "preset": 68
+        },
+        "V2_counterpoint": {
+          "channel": 1,
+          "timbre": "violin",
+          "soundfont": "TimGM6mb",
+          "bank": 0,
+          "preset": 40
+        },
+        "V3_bass": {
+          "channel": 2,
+          "timbre": "cello",
+          "soundfont": "TimGM6mb",
+          "bank": 0,
+          "preset": 42
+        },
+        "V4_horn_harmony": {
+          "channel": 3,
+          "timbre": "french_horn",
+          "soundfont": "TimGM6mb",
+          "bank": 0,
+          "preset": 60
+        },
+        "V5_viola_harmony": {
+          "channel": 4,
+          "timbre": "viola",
+          "soundfont": "TimGM6mb",
+          "bank": 0,
+          "preset": 41
+        },
+        "V6_harp_accents": {
+          "channel": 5,
+          "timbre": "orchestral_harp",
+          "soundfont": "FreePats Concert Harp",
+          "bank": 0,
+          "preset": 0
+        }
+      },
+      "nma_sampled_background_notes": [
+        45,
+        46,
+        41
+      ]
+    },
+    "nma": {
+      "available": true,
+      "model": "CA anisotropic network model (unit springs)",
+      "sample_stride": 1,
+      "sampled_residues": 12,
+      "contacts": 66,
+      "relative_eigenvalues": [
+        1.1388747852958179,
+        1.182632934059977,
+        1.4243804251422238,
+        1.9133499730460368,
+        2.0825867055302676,
+        2.1387050758815582,
+        2.3760866160519787,
+        2.5819962384822053,
+        2.7703010897152307,
+        3.1848279598314306,
+        3.3036094559045623,
+        3.4977490047272393,
+        3.7022762933175937,
+        3.786862690613509,
+        4.077249818883908,
+        4.21299206323651,
+        4.431053184236093,
+        4.4882988774867485,
+        4.817983329776957,
+        5.367920896572602,
+        5.644973786873699,
+        5.68217281876337,
+        6.061346342709914,
+        6.281314228020466
+      ],
+      "audible_frequencies_hz": [
+        55.000000000000014,
+        59.37401975645941,
+        86.60539678273607,
+        157.6464764018177,
+        187.2378541609441,
+        197.620443869856,
+        244.68692458269385,
+        289.6464747843247,
+        334.1319213290233,
+        443.43771737414113,
+        477.65010272822343,
+        536.3465825994289,
+        601.9190574117847,
+        630.1596928100046,
+        732.1130064180561,
+        782.4322358722117,
+        866.8213264218238,
+        889.70205289038,
+        1027.365364716653,
+        1279.3788892207504,
+        1416.9653790354741,
+        1435.9816306421599,
+        1637.1577503656335,
+        1759.9999999999995
+      ],
+      "scientific_boundary": "单位弹簧模型的本征值没有绝对频率标定；可听频率仅保持模态间对数比例。"
+    },
+    "sequence_payload": {
+      "payload_version": "biosound-sequence-v1",
+      "data_type": "protein",
+      "canonical_sequence": "AGKLDTVFYENW",
+      "length": 12,
+      "sequence_sha256": "ddb516a35c9aa98ff49ae437e7426826bd9760b8d458374216ce177a2891017a",
+      "mapping_mode": "生物物理调式映射（推荐）",
+      "recovery_scope": "exact canonical symbol recovery from embedded metadata; not pitch-only inverse design"
+    }
+  },
+  "gvr": {
+    "proposed_count": 38,
+    "retained_count": 38,
+    "passed": true,
+    "checks": {
+      "H_duration": true,
+      "H_event_id": true,
+      "H_mapping": true,
+      "H_parent": true,
+      "H_register": true,
+      "H_timeline": true,
+      "H_trace": true,
+      "coverage": true,
+      "polyphony": true,
+      "independent_voices": true
+    },
+    "tone_row": null,
+    "tone_rows": null,
+    "codec": null,
+    "violations_before": [
+      {
+        "event_id": 4,
+        "rule": "S_unison_clarity",
+        "severity": "soft",
+        "message": "多个声部在同一拍进入同一实际音高；保留为允许的管弦乐齐奏。",
+        "repaired": false,
+        "action": ""
+      },
+      {
+        "event_id": 11,
+        "rule": "S_unison_clarity",
+        "severity": "soft",
+        "message": "多个声部在同一拍进入同一实际音高；保留为允许的管弦乐齐奏。",
+        "repaired": false,
+        "action": ""
+      },
+      {
+        "event_id": 22,
+        "rule": "S_unison_clarity",
+        "severity": "soft",
+        "message": "多个声部在同一拍进入同一实际音高；保留为允许的管弦乐齐奏。",
+        "repaired": false,
+        "action": ""
+      },
+      {
+        "event_id": 26,
+        "rule": "S_unison_clarity",
+        "severity": "soft",
+        "message": "多个声部在同一拍进入同一实际音高；保留为允许的管弦乐齐奏。",
+        "repaired": false,
+        "action": ""
+      }
+    ],
+    "violations_after": [
+      {
+        "event_id": 4,
+        "rule": "S_unison_clarity",
+        "severity": "soft",
+        "message": "多个声部在同一拍进入同一实际音高；保留为允许的管弦乐齐奏。",
+        "repaired": false,
+        "action": ""
+      },
+      {
+        "event_id": 11,
+        "rule": "S_unison_clarity",
+        "severity": "soft",
+        "message": "多个声部在同一拍进入同一实际音高；保留为允许的管弦乐齐奏。",
+        "repaired": false,
+        "action": ""
+      },
+      {
+        "event_id": 22,
+        "rule": "S_unison_clarity",
+        "severity": "soft",
+        "message": "多个声部在同一拍进入同一实际音高；保留为允许的管弦乐齐奏。",
+        "repaired": false,
+        "action": ""
+      },
+      {
+        "event_id": 26,
+        "rule": "S_unison_clarity",
+        "severity": "soft",
+        "message": "多个声部在同一拍进入同一实际音高；保留为允许的管弦乐齐奏。",
+        "repaired": false,
+        "action": ""
+      }
+    ],
+    "repairs": []
+  }
+}

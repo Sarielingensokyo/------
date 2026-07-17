@@ -1,3 +1,4 @@
 streamlit==1.31.1
 numpy>=1.21,<2.1
 pandas>=1.4,<2.3
+sf2-loader==1.29

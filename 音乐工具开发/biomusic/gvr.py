@@ -19,6 +19,7 @@ def verify_events(
     max_midi: int,
     tone_rows: list[list[int]] | None = None,
     codec: dict | None = None,
+    allowed_pitch_classes: set[int] | None = None,
 ) -> tuple[list[Violation], dict[str, bool]]:
     violations: list[Violation] = []
     if len({e.event_id for e in events}) != len(events):
@@ -35,6 +36,8 @@ def verify_events(
             violations.append(Violation(event.event_id, "H_register", "hard", f"{event.voice_id} 超出 {low}–{high} 的声部音域。"))
         if event.midi % 12 != event.expected_pc:
             violations.append(Violation(event.event_id, "H_mapping", "hard", "实际音级与映射证书不一致。"))
+        if allowed_pitch_classes is not None and event.midi % 12 not in allowed_pitch_classes:
+            violations.append(Violation(event.event_id, "H_scale", "hard", "实际音级不属于所选主音与调式的允许集合。"))
         if event.source_index < 0 or not event.source_label or not event.mapping_rule:
             violations.append(Violation(event.event_id, "H_trace", "hard", "缺少生物来源或映射理由。"))
         if event.voice_id != "V1_melody" and event.parent_event_id not in event_ids:
@@ -94,6 +97,8 @@ def verify_events(
                 violations.append(Violation(None, "H_codec_domain", "hard", str(exc)))
 
     hard_rules = {"H_event_id", "H_duration", "H_timeline", "H_register", "H_mapping", "H_trace", "H_parent"}
+    if allowed_pitch_classes is not None:
+        hard_rules.add("H_scale")
     checks = {rule: not any(v.rule == rule and v.severity == "hard" for v in violations) for rule in sorted(hard_rules)}
     if tone_rows is not None:
         checks["H_row"] = row_ok
@@ -119,9 +124,10 @@ def repair_events(
     max_midi: int,
     tone_rows: list[list[int]] | None = None,
     codec: dict | None = None,
+    allowed_pitch_classes: set[int] | None = None,
 ) -> tuple[list[MusicEvent], GVRReport]:
     repaired_events = deepcopy(events)
-    before, _ = verify_events(repaired_events, min_midi, max_midi, tone_rows, codec)
+    before, _ = verify_events(repaired_events, min_midi, max_midi, tone_rows, codec, allowed_pitch_classes)
     repairs: list[Violation] = []
     by_voice: dict[str, list[MusicEvent]] = defaultdict(list)
     for event in repaired_events:
@@ -141,6 +147,15 @@ def repair_events(
                 event_repairs += 1
                 repairs.append(Violation(event.event_id, "H_timeline", "hard", f"{voice_id} 内重叠", True, f"起拍由 {old} 后移到 {event.onset}"))
             low, high = _effective_range(event, min_midi, max_midi)
+            if allowed_pitch_classes is not None and event.expected_pc not in allowed_pitch_classes:
+                old_pc = event.expected_pc
+                candidates = [m for m in range(low, high + 1) if m % 12 in allowed_pitch_classes]
+                if candidates:
+                    event.midi = min(candidates, key=lambda m: (abs(m - event.midi), m))
+                    event.expected_pc = event.midi % 12
+                    event.mapping_rule += "; GVR 投影到最近的调式内音级"
+                    event_repairs += 1
+                    repairs.append(Violation(event.event_id, "H_scale", "hard", f"音级 {old_pc} 越出调式", True, f"投影到音级 {event.expected_pc}"))
             target_pc = event.expected_pc
             if event.midi % 12 != target_pc or not low <= event.midi <= high:
                 old = event.midi
@@ -152,7 +167,7 @@ def repair_events(
             previous_end = event.onset + event.duration
 
     repaired_events.sort(key=lambda e: (e.onset, e.voice_id, e.event_id))
-    after, checks = verify_events(repaired_events, min_midi, max_midi, tone_rows, codec)
+    after, checks = verify_events(repaired_events, min_midi, max_midi, tone_rows, codec, allowed_pitch_classes)
     hard_after = [v for v in after if v.severity == "hard"]
     report = GVRReport(
         proposed_count=len(events),

@@ -8,12 +8,15 @@ import streamlit as st
 
 from biomusic.codec import decode_artifact
 from biomusic.exporters import ORCHESTRAL_LABELS, musicxml_to_pdf
+from biomusic.mapping import scale_pitch_classes
 from biomusic.parsers import parse_uploaded
 from biomusic.pipeline import SonificationSettings, run_pipeline
+from biomusic.soundfont import validate_soundfonts
 
 
 ROOT = Path(__file__).resolve().parent
 EXAMPLES = ROOT / "examples"
+PITCH_CLASS_LABELS = ["C", "C♯/D♭", "D", "D♯/E♭", "E", "F", "F♯/G♭", "G", "G♯/A♭", "A", "A♯/B♭", "B"]
 
 st.set_page_config(page_title="BioSound GVR", page_icon="🧬", layout="wide")
 st.markdown(
@@ -128,14 +131,44 @@ with st.sidebar:
             **可逆十二音列载体（实验）**：DNA/RNA 每 12 个碱基、蛋白质每 6 个残基编码为一条全排列。可从未修改的载体音级严格解码，但音响更无调性，建议用于编码实验而非默认创作。
             """
         )
-    st.caption("所有试听与 MIDI 音色仅使用古典管弦乐器：木管、弦乐、圆号和竖琴。")
+    audio_backend_label = st.selectbox(
+        "试听音源",
+        ["SoundFont 2 采样器（推荐）", "程序合成回退"],
+        help="推荐模式读取本地 SF2 真实采样；程序合成只在调试或 SF2 文件损坏时使用。",
+    )
+    st.caption("SoundFont 模式使用 FreePats 单簧管、FreePats 竖琴和 TimGM6mb 古典乐器采样。")
+    with st.expander("查看 SoundFont 文件、体积和许可"):
+        sf_status = validate_soundfonts()
+        st.dataframe(pd.DataFrame([
+            {
+                "音色库": name,
+                "体积 MiB": info["size_mib"],
+                "状态": "可用" if info["valid"] else "缺失/损坏",
+                "用途": "单簧管" if "Clarinet" in name else ("竖琴" if "Harp" in name else "木管、弦乐、圆号后备库"),
+                "许可": "CC0 1.0" if "FreePats" in name else "GPLv2",
+            }
+            for name, info in sf_status.items()
+        ]), use_container_width=True, hide_index=True)
+        st.markdown(
+            "来源：[FreePats Clarinet](https://freepats.zenvoid.org/Reed/clarinet.html) · "
+            "[FreePats Concert Harp](https://freepats.zenvoid.org/OrchestralStrings/harp.html) · "
+            "[Debian TimGM6mb](https://packages.debian.org/source/bullseye/timgm6mb-soundfont)"
+        )
+    strict_modal_ui = pitch_mode == "生物物理调式映射（推荐）"
     scale_name = st.selectbox("调式 / 音阶", [
         "多利亚调式", "大调（伊奥尼亚）", "自然小调", "和声小调", "旋律小调",
         "弗里几亚调式", "利底亚调式", "混合利底亚调式", "洛克里亚调式",
         "五声音阶", "小调五声音阶", "布鲁斯音阶", "全音音阶",
         "八音音阶（全-半）", "八音音阶（半-全）", "半音阶",
-    ])
-    st.caption("调式主要决定推荐生物物理模式的音级集合，并影响派生和声；实验性十二音列的载体音级不受调式量化。")
+    ], disabled=not strict_modal_ui)
+    tonic_names = PITCH_CLASS_LABELS
+    tonic_name = st.selectbox("主音（Tonic）", tonic_names, disabled=not strict_modal_ui)
+    root_midi = 60 + tonic_names.index(tonic_name)
+    if strict_modal_ui:
+        allowed_labels = [PITCH_CLASS_LABELS[pc] for pc in scale_pitch_classes(scale_name, root_midi)]
+        st.success(f"严格调式：{tonic_name} {scale_name}；所有六个声部及 NMA 背景只允许：{' · '.join(allowed_labels)}")
+    else:
+        st.caption("文献复现与十二音列实验模式保留各自的原始音高逻辑，不套用调式量化。")
     row_form = st.selectbox("十二音列呈现形式", ["P", "I", "R", "RI"], disabled=pitch_mode != "可逆十二音列载体（实验）")
     if pitch_mode == "可逆十二音列载体（实验）":
         st.caption("DNA/RNA 每 12 个碱基、蛋白质每 6 个残基编码为一条音列；P/I/R/RI 会写入元数据并在解码前逆变换。")
@@ -169,6 +202,7 @@ if run:
         record_index=int(record_index),
         pitch_mode=pitch_mode,
         scale_name=scale_name,
+        root_midi=root_midi,
         tempo=tempo,
         meter_beats=meter_beats,
         meter_beat_type=meter_beat_type,
@@ -178,6 +212,7 @@ if run:
         enable_nma=enable_nma,
         texture_density=int(texture_density),
         counterpoint_strength=float(counterpoint_strength),
+        audio_backend="soundfont" if audio_backend_label.startswith("SoundFont") else "procedural",
     )
     try:
         with st.spinner("解析数据、计算特征并执行 GVR…"):
@@ -243,7 +278,8 @@ with workbench:
         st.subheader(result.record.name)
         st.audio(result.wav, format="audio/wav")
         st.caption(
-            f"{summary['voice_count']} 声部古典室内乐预览 · 可同时发声；QC 低通截止频率 {result.audio_info['qc_lowpass_cutoff_hz']} Hz。"
+            f"{summary['voice_count']} 声部古典室内乐预览 · 音频引擎：{result.audio_info.get('audio_backend', 'procedural')}；"
+            f"QC 低通截止频率 {result.audio_info['qc_lowpass_cutoff_hz']} Hz。"
             + (" 音频因长度上限被截断，谱面和轨迹仍保留全部事件。" if result.audio_info["truncated"] else "")
         )
         st.subheader("当前编制")
@@ -257,6 +293,12 @@ with workbench:
             for voice_id, info in summary["voices"].items()
         ]
         st.dataframe(pd.DataFrame(orchestration_rows), use_container_width=True, hide_index=True)
+        if result.audio_info.get("soundfont_assignments"):
+            with st.expander("本次各声部实际使用的 SF2 preset"):
+                st.dataframe(pd.DataFrame([
+                    {"声部": voice_id, **assignment}
+                    for voice_id, assignment in result.audio_info["soundfont_assignments"].items()
+                ]), use_container_width=True, hide_index=True)
         preferred_features = [
             "relative_sasa", "surface_wetness", "backbone_rigidity", "b_factor_normalized",
             "sidechain_mass_normalized", "hydropathy_normalized", "contact_degree", "spatial_pan",
@@ -336,6 +378,14 @@ with mapping_tab:
             st.dataframe(pd.DataFrame([r.to_dict() for r in result.report.repairs]), use_container_width=True)
         else:
             st.success("本次候选事件无需修复。")
+    if result.summary.get("strict_modal"):
+        allowed = result.summary["allowed_pitch_classes"]
+        st.subheader("严格调式证书")
+        st.info(
+            f"{result.summary['scale_name']} · 主音 MIDI {result.summary['root_midi']} · "
+            f"允许音级：{' · '.join(PITCH_CLASS_LABELS[pc] for pc in allowed)}。"
+            "V1–V6 与 NMA 背景均受此集合约束；GVR 的 H_scale 会拦截任何越界音。"
+        )
     st.subheader("当前氨基酸音高配置（配器独立由理化特征决定）")
     st.dataframe(pd.read_csv(ROOT / "config" / "pitch_mapping.csv"), use_container_width=True, height=310)
     if result.record.data_type == "protein":

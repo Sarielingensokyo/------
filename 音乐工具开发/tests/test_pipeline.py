@@ -7,9 +7,15 @@ from pathlib import Path
 from xml.etree import ElementTree
 
 from biomusic.pipeline import SonificationSettings, run_pipeline
-from biomusic.mapping import CLASSICAL_TIMBRES
+from biomusic.features import enrich_record
+from biomusic.gvr import repair_events
+from biomusic.mapping import (
+    CLASSICAL_TIMBRES, SCALES, MappingSettings, generate_events,
+    load_pitch_mapping, scale_pitch_classes,
+)
 from biomusic.parsers import parse_uploaded
 from biomusic.codec import decode_artifact, decode_rows, encode_sequence, rank_permutation, unrank_permutation
+from biomusic.soundfont import validate_soundfonts
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -117,6 +123,14 @@ class PipelineTests(unittest.TestCase):
         melody = [event for event in result.events if event.voice_id == "V1_melody"]
         self.assertTrue(all({1, 10, 74, 91, 93} <= set(event.cc_controls) for event in melody))
         self.assertTrue(all(0.0 < event.gate_ratio <= 1.0 for event in melody))
+        self.assertEqual(result.audio_info["audio_backend"], "soundfont")
+        self.assertTrue(result.audio_info["soundfont_assignments"])
+        self.assertTrue(all(info["valid"] for info in validate_soundfonts().values()))
+        self.assertTrue(result.audio_info["nma_sampled_background_notes"])
+        allowed = set(result.summary["allowed_pitch_classes"])
+        self.assertTrue(result.report.checks["H_scale"])
+        self.assertTrue(all(event.midi % 12 in allowed for event in result.events))
+        self.assertTrue(all(note % 12 in allowed for note in result.audio_info["nma_sampled_background_notes"]))
         self.assertIn("contact-density exposure proxy", result.record.metadata["sasa_source"])
         original = "".join(result.record.symbols)
         for filename, artifact in (
@@ -140,6 +154,30 @@ class PipelineTests(unittest.TestCase):
         )
         self.assertEqual(result.summary["pitch_mode"], "生物物理调式映射（推荐）")
         self.assertIsNone(result.report.codec)
+
+    def test_every_scale_and_transposed_tonic_is_strict(self):
+        data = (ROOT / "examples" / "example_protein.fasta").read_bytes()
+        record = enrich_record(parse_uploaded("example_protein.fasta", data)[0])
+        pitch_map = load_pitch_mapping(ROOT / "config" / "pitch_mapping.csv")
+        for scale_name in SCALES:
+            for root_midi in (60, 61):
+                with self.subTest(scale=scale_name, root=root_midi):
+                    settings = MappingSettings(
+                        pitch_mode="生物物理调式映射（推荐）",
+                        scale_name=scale_name,
+                        root_midi=root_midi,
+                        max_events=42,
+                        texture_density=6,
+                    )
+                    proposed, rows, codec = generate_events(record, settings, pitch_map)
+                    allowed = set(scale_pitch_classes(scale_name, root_midi))
+                    events, report = repair_events(
+                        proposed, settings.min_midi, settings.max_midi, rows, codec,
+                        allowed_pitch_classes=allowed,
+                    )
+                    self.assertTrue(report.passed)
+                    self.assertTrue(report.checks["H_scale"])
+                    self.assertTrue(all(event.midi % 12 in allowed for event in events))
 
     def test_csv_qc_filter(self):
         data = (ROOT / "examples" / "example_expression.csv").read_bytes()

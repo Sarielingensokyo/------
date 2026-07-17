@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import math
 import wave
 
 import numpy as np
@@ -66,6 +67,19 @@ def _moving_average(signal: np.ndarray, window: int) -> np.ndarray:
     ]).astype(np.float32)
 
 
+def _modal_nma_frequency(frequency: float, allowed_pitch_classes: set[int] | None) -> tuple[float, int]:
+    midi = int(round(69 + 12 * math.log2(max(1e-6, frequency) / 440.0)))
+    while midi < 36:
+        midi += 12
+    while midi > 59:
+        midi -= 12
+    midi = int(np.clip(midi, 36, 59))
+    if allowed_pitch_classes is not None:
+        candidates = [m for m in range(36, 60) if m % 12 in allowed_pitch_classes]
+        midi = min(candidates, key=lambda m: (abs(m - midi), m))
+    return 440.0 * (2.0 ** ((midi - 69) / 12.0)), midi
+
+
 def render_wav(
     events: list[MusicEvent],
     tempo: int,
@@ -74,6 +88,7 @@ def render_wav(
     sample_rate: int = 22050,
     max_seconds: float = 150.0,
     seed: int = 42,
+    allowed_pitch_classes: set[int] | None = None,
 ) -> tuple[bytes, dict]:
     if not events:
         raise ValueError("没有可渲染事件。")
@@ -124,10 +139,13 @@ def render_wav(
                 stereo[wet_start:wet_start + wet_length, 1] += tone[:wet_length] * gain * (0.72 + 0.28 * width)
         rendered_events += 1
 
+    nma_notes: list[int] = []
     if nma and nma.get("available"):
         t = np.arange(total_samples, dtype=np.float32) / sample_rate
         drone = np.zeros(total_samples, dtype=np.float32)
-        for mode_index, freq in enumerate(nma.get("audible_frequencies_hz", [])[:3]):
+        for mode_index, raw_freq in enumerate(nma.get("audible_frequencies_hz", [])[:3]):
+            freq, nma_midi = _modal_nma_frequency(float(raw_freq), allowed_pitch_classes)
+            nma_notes.append(nma_midi)
             slow_rate = 0.07 + 0.035 * mode_index
             phase = 2 * np.pi * float(freq) * t + 0.018 * np.sin(2 * np.pi * slow_rate * t + mode_index)
             # A quiet low-string/horn-like spectrum; no electronic/granular timbre.
@@ -171,4 +189,7 @@ def render_wav(
             for voice_id in sorted({event.voice_id for event in events})
         },
         "preview_source": "procedural classical-instrument approximation; MIDI/MusicXML carry persistent orchestral programs",
+        "nma_sampled_background_notes": nma_notes,
+        "nma_scale_quantized": allowed_pitch_classes is not None,
+        "strict_scale_pitch_classes": sorted(allowed_pitch_classes) if allowed_pitch_classes is not None else None,
     }

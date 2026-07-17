@@ -332,7 +332,7 @@ def add_cover(doc):
         doc.add_paragraph()
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    set_font(p.add_run("版本 3.0  |  2026 年 7 月 16 日  |  本地离线连续表现层版"), size=10.5, color=MUTED, bold=True)
+    set_font(p.add_run("版本 3.2  |  2026 年 7 月 17 日  |  严格调式 + 本地 SoundFont 版"), size=10.5, color=MUTED, bold=True)
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     set_font(p.add_run("工作目录：C:\\Users\\34591\\Desktop\\音乐基因转化\\音乐工具开发"), size=9, color=MUTED)
@@ -383,7 +383,7 @@ def build():
     doc.add_heading("1.3 能力边界", level=2)
     add_bullet(doc, "可以：教学演示、规则比较、数据质控的听觉辅助、跨学科创作、可复现原型研究。")
     add_bullet(doc, "不应直接用于：疾病诊断、结构预测结论、细胞质量的唯一判断、把悦耳程度解释为生物功能。")
-    add_bullet(doc, "网页试听是可叠加的轻量古典乐器频谱近似；出版级音质应把多轨 MIDI 或多谱表 MusicXML 送入 Muse Sounds、专业管弦乐采样库或真实演奏。")
+    add_bullet(doc, "网页默认通过 FluidSynth 读取三个本地 SF2 采样库；这是轻量真实采样，不等同于多动态、多奏法的出版级管弦乐库。出版级音质仍建议使用 Muse Sounds、专业采样库或真实演奏。")
 
     doc.add_heading("2. 网页界面与完整操作流程", level=1)
     doc.add_heading("2.1 左侧输入与作曲设置", level=2)
@@ -393,7 +393,9 @@ def build():
         ("序列类型", "自动识别、蛋白质、DNA、RNA", "含模糊字符时手动指定"),
         ("记录/链", "多 FASTA 记录或多 PDB 链的选择器", "每次处理一个记录"),
         ("音高策略", "推荐生物物理调式、文献复现、实验性十二音列", "默认使用推荐模式"),
+        ("试听音源", "SoundFont 2 采样器或程序合成回退", "默认选择 SoundFont"),
         ("调式/音阶", "教会调式、大小调、五声、布鲁斯、全音、八音、半音", "影响推荐模式和派生和声"),
+        ("主音（Tonic）", "C 至 B 的 12 个半音位置", "与调式共同定义唯一允许音级集合"),
         ("十二音列形式", "P、I、R、RI", "仅实验性十二音列启用"),
         ("速度/拍号", "控制播放时间与小节组织", "同批比较保持一致"),
         ("最多生成事件", "对推荐/文献模式的超长输入等间隔抽样", "十二音列实验模式自动禁用抽样"),
@@ -432,7 +434,7 @@ def build():
 
     doc.add_heading("4. 试听、审计与导出功能", level=1)
     doc.add_heading("4.1 WAV 试听", level=2)
-    add_para(doc, "网页生成 22.05 kHz、16 位、双声道 WAV。六个声部按各自起拍叠加，具有固定的古典乐器角色和基础舞台位置；PDB x 坐标在该基础上施加局部空间偏移。音频最长默认 150 秒，超出时仅试听被截断，MIDI、MusicXML 和 Trace 仍保留全部事件。")
+    add_para(doc, "网页默认生成 44.1 kHz、16 位、双声道 SoundFont WAV。六个声部由独立 FluidSynth 通道驱动 SF2 preset；PDB x 坐标通过 CC10 在基础舞台位置上施加局部偏移。音频最长默认 150 秒，超出时仅试听被截断，MIDI、MusicXML 和 Trace 仍保留全部事件。若用户主动选择程序合成回退，采样率为 22.05 kHz。")
     doc.add_heading("4.2 六类下载文件", level=2)
     add_table(doc, ["格式", "包含内容", "典型用途"], [
         ("WAV", "已渲染的双声道古典配器预览", "快速试听、演示"),
@@ -465,7 +467,7 @@ def build():
 
     doc.add_heading("6. PDB 连续结构特征、空间声像与粗粒化 NMA", level=1)
     doc.add_heading("6.1 三维坐标到左右声像", level=2)
-    add_para(doc, "对每条链的 CA 坐标先减去质心。x 坐标按该链的 x 轴跨度归一化到 [-1, 1]：-1 为左，0 为中央，+1 为右。网页 WAV 使用等功率声像：left = cos((pan+1)π/4)，right = sin((pan+1)π/4)。因此耳机中左右能量连续变化，而不是简单开关。")
+    add_para(doc, "对每条链的 CA 坐标先减去质心。x 坐标按该链的 x 轴跨度归一化到 [-1, 1]：-1 为左，0 为中央，+1 为右。SoundFont WAV 将其换算为 MIDI CC10 的 0–127 连续声像；程序合成回退使用等功率公式 left = cos((pan+1)π/4)、right = sin((pan+1)π/4)。")
     doc.add_heading("6.2 接触度", level=2)
     add_para(doc, "任意两 CA 原子距离小于 8 Å 且不为自身时记为一次接触。每个残基的接触数量在链内归一化到 0–1，主要影响音区与大提琴配器：高接触度更容易进入较厚重、较集中声部。8 Å 是粗粒化接触图常见量级，本平台把它作为可配置 MVP 规则，不等同于化学键。")
     doc.add_heading("6.3 相对 SASA 与表面湿润度", level=2)
@@ -510,7 +512,8 @@ def build():
         ("稀疏音阶", "大调五声、小调五声、布鲁斯", "减少碰撞、适合入门与短序列"),
         ("对称音阶", "全音、八音全-半、八音半-全、半音", "漂浮、减和声或高密度张力"),
     ], [1800, 4300, 3260], size=8.8)
-    add_para(doc, "调式影响推荐模式的音级集合以及低音/和声派生。实验性十二音列的 V1 载体不受调式量化，但圆号、中提琴和大提琴仍可使用所选调式组织艺术层。")
+    add_para(doc, "推荐模式把调式定义为硬约束而不是风格提示。允许集合为 P = {(root_midi + s) mod 12 | s 属于所选音阶间隔表}。例如 C 多利亚只允许 C、D、E♭、F、G、A、B♭；D 多利亚则允许 D、E、F、G、A、B、C。主音改变时，整套音级集合随之等距移调。")
+    add_para(doc, "严格范围覆盖 V1 主旋律、V2 小提琴对位、V3 大提琴、V4 圆号、V5 中提琴、V6 竖琴以及 NMA 三个持续背景音。文献复现与实验性十二音列保留各自音高逻辑，网页会禁用调式/主音控件，避免造成‘已经量化’的误解。")
     doc.add_heading("8.3 六声部古典编配", level=2)
     add_table(doc, ["声部", "固定乐器", "音乐功能", "生物来源"], [
         ("V1_melody", "长笛/双簧管/单簧管/竖琴等", "前景生物主旋律", "每个被抽样的原始序列或数据点"),
@@ -541,13 +544,23 @@ def build():
     ], [2400, 3300, 3660], size=8.6)
     add_para(doc, "同一来源残基产生的派生声部继承 CC74/CC91/CC93/CC1，并按自身舞台位置重写 CC10。V1 的音高来源证书保持不变；表现层只改变奏法、响度、频谱、混响、合唱与空间。专业管弦乐音源可能忽略 GM CC74/91/93，届时应在 DAW 中绑定对应参数，或使用 MusicXML 奏法标记。")
     doc.add_heading("8.6 对位、低音、和声与结构重音算法", level=2)
-    add_bullet(doc, "对位：按 2–3 个主旋律事件抽取锚点，延迟 0.5 拍；普通调式采用三度及反向音区，十二音列采用 I 形式的对应位置。")
+    add_bullet(doc, "对位：按 2–3 个主旋律事件抽取锚点，延迟 0.5 拍；推荐模式不再减固定 3/4 个半音，而是沿当前调式移动正/负两个音级（调式内三度）并采用反向音区；十二音列采用 I 形式的对应位置。")
     add_bullet(doc, "低音：按约两小节形成窗口，主音/属音在大提琴音域持续到下一窗口。")
     add_bullet(doc, "圆号与中提琴：按更长区块形成持续和声场，分别承担根音/属功能与三度色彩。和声是艺术组织层，不应解释为分子稳定性。")
-    add_bullet(doc, "竖琴：在二级结构变化、接触度峰、数值显著峰或短语起点演奏三音短琶音，作为可听的结构标记。")
-    doc.add_heading("8.7 网页音色模型与厅堂反射", level=2)
-    add_para(doc, "WAV 试听不依赖大型 SoundFont，而是用古典乐器典型谐波结构作轻量加法合成：长笛以基频为主，单簧管突出奇次谐波，双簧管具有较丰富高次谐波，弦乐采用递减谐波并加入轻微揉弦，圆号与大管突出低次谐波，竖琴使用指数衰减拨弦包络。六声部使用不同增益，混合后加入 37 ms 与 71 ms 的克制早期反射。")
-    add_para(doc, "这能提供古典配器方向的本地预览，但不等于真实乐团采样。多轨 MIDI 可驱动 Muse Sounds、Kontakt、BBC Symphony Orchestra 等音源；多谱表 MusicXML 可在 MuseScore/Sibelius 中排总谱、分谱和进一步人工配器。")
+    add_bullet(doc, "竖琴：在二级结构变化、接触度峰、数值显著峰或短语起点，以父音为第一音，沿调式取第 3 与第 5 音级构成三音短琶音；不再从任意父音叠加固定半音距离。")
+    add_bullet(doc, "NMA：前三个可听化低模态先折叠到 MIDI 36–59，再投影到最近的允许音级；因此持续背景不会与所选调式产生非预期半音冲突。")
+    doc.add_heading("8.7 SoundFont 采样器、音色库与许可", level=2)
+    add_para(doc, "默认 WAV 不再由谐波公式冒充乐器，而是由 sf2-loader 内含的 FluidSynth 引擎读取本地 SF2 样本。每个作品声部占用独立通道；程序号、CC1/10/74/91/93、note-on 和按 gate_ratio 计算的 note-off 都按事件时间表送入采样器。")
+    add_para(doc, "CC10 声像与 note-off 门限由 FluidSynth 直接执行；CC1/74/91/93 的实际听觉强度还取决于该 SF2 是否定义了相应调制器。Trace 和 MIDI 仍会完整保存这些控制值，因此换用支持更完整的专业库后无需重新计算生物映射。")
+    add_table(doc, ["SF2 文件", "体积", "实际用途", "来源与许可"], [
+        ("TimGM.sf2", "5.69 MiB", "长笛、双簧管、大管、弦乐、圆号；NMA 低弦/圆号背景", "Debian TimGM6mb；GPLv2"),
+        ("Clarinet-20190818.sf2", "7.05 MiB", "单簧管主旋律", "FreePats；CC0 1.0"),
+        ("ConcertHarp-small-20200702.sf2", "8.81 MiB", "竖琴主旋律与结构重音", "FreePats/VCSL；CC0 1.0"),
+    ], [2800, 1150, 3100, 2310], size=8.8)
+    add_para(doc, "来源页面：https://freepats.zenvoid.org/Reed/clarinet.html；https://freepats.zenvoid.org/OrchestralStrings/harp.html；https://packages.debian.org/source/bullseye/timgm6mb-soundfont。完整哈希和第三方声明保存在 assets/soundfonts/THIRD_PARTY_NOTICES.md。")
+    add_para(doc, "运行时使用 sf2-loader 1.29 及其 FluidSynth 组件，两者采用 LGPL-2.1-or-later。SF2 文件本身的许可独立计算：两个 FreePats 文件为 CC0，TimGM6mb 为 GPLv2。")
+    add_para(doc, "启动时平台检查文件体积以及 RIFF/sfbk 文件头。缺失、下载成 HTML 错误页或 FluidSynth 无法选择 preset 时，默认记录 soundfont_error 并降级到程序合成；用户也可主动选择“程序合成回退”。这种降级会在 GVR JSON 的 audio 元数据和网页音频引擎标签中公开。")
+    add_para(doc, "SoundFont 是经过录音、裁切、循环和映射的采样音色，但这些小库的采样层、动态层和奏法数量有限。多轨 MIDI 仍可进一步驱动 Muse Sounds、Kontakt、BBC Symphony Orchestra 等专业音源。")
     doc.add_heading("8.8 力度、声像与呼吸", level=2)
     add_para(doc, "力度限制在 MIDI 1–127 的安全范围内，各声部再按前景、对位、低音、和声和重音设置独立混合增益。默认每 24 个主旋律事件插入 0.25 拍呼吸空隙。大提琴和圆号偏左，中提琴偏右，小提琴偏右，竖琴接近中央；有 PDB 坐标时，x 轴声像以加权偏移叠加到舞台位置。")
 
@@ -565,6 +578,7 @@ def build():
     doc.add_heading("9.4 硬约束", level=2)
     add_table(doc, ["规则", "验证内容", "失败后处理"], [
         ("H_mapping", "实际音级 = 映射证书 expected_pc", "保持音级投影到合法 MIDI"),
+        ("H_scale", "推荐模式的所有事件音级属于主音 + 调式允许集合", "投影到最近调式内 MIDI，更新证书后复检"),
         ("H_register", "每个声部在自己的可演奏音域与全局 36–96 内", "换八度，不改变音级"),
         ("H_timeline", "同一 voice_id 内不意外重叠；跨声部重叠合法", "只顺延发生冲突的单一声部"),
         ("H_duration", "时值 > 0", "设为 0.25 拍"),
@@ -579,7 +593,7 @@ def build():
     reset_numbers()
     add_number(doc, "Generate：规则生成器依据数据和设置提出事件。MVP 不需要在线 LLM。")
     add_number(doc, "Verify：对实际事件执行确定性硬规则，而不是读取生成器的自我声明。")
-    add_number(doc, "Repair：按声部分组，只做保持生物约束的局部操作，如换八度保留音级、修正时值、顺延声部内部重叠。跨声部同时发声不会被错误消除。")
+    add_number(doc, "Repair：按声部分组，只做保持生物约束的局部操作，如换八度保留音级、把越界音投影到最近调式内音级、修正时值、顺延声部内部重叠。跨声部同时发声不会被错误消除。")
     add_number(doc, "Re-verify：对修复后的最终事件重新扫描。")
     add_number(doc, "Release：有任何剩余硬违规时不发布 WAV/MIDI/MusicXML。")
     add_callout(doc, "与论文一致的谨慎表述", "事件级约束通过不等于作品在所有音乐学层面都完全合法。平台报告的是已实现规则的通过状态，并保留可核查轨迹。", fill=PALE_TEAL)
@@ -600,7 +614,7 @@ def build():
     doc.add_heading("11. 多类输入的完整示例工作流", level=1)
     doc.add_heading("11.1 直接粘贴蛋白质", level=2)
     reset_numbers()
-    for step in ["选择“粘贴序列”，输入名称。", "粘贴一字母蛋白质序列并手动选择“蛋白质”。", "音高策略选“生物物理调式映射（推荐）”，调式先选多利亚，速度 96，编配层数 6。", "生成后确认 6 个独立声部，在 Trace 核对来源、gate_ratio、CC74、CC91 与 CC93。", "下载 MusicXML、MIDI、Trace CSV 与 GVR JSON；需要文献对照时再切换“文献氨基酸映射（复现）”。"]:
+    for step in ["选择“粘贴序列”，输入名称。", "粘贴一字母蛋白质序列并手动选择“蛋白质”。", "音高策略选“生物物理调式映射（推荐）”，主音选 C、调式选多利亚，速度 96，编配层数 6。", "生成后确认 6 个独立声部，并在 GVR 页确认 H_scale 通过；在 Trace 核对来源、gate_ratio、CC74、CC91 与 CC93。", "下载 MusicXML、MIDI、Trace CSV 与 GVR JSON；需要文献对照时再切换“文献氨基酸映射（复现）”。"]:
         add_number(doc, step)
     doc.add_heading("11.2 DNA/RNA", level=2)
     add_para(doc, "使用“生物物理调式映射（推荐）”，从多利亚、五声或大调开始。观察 GC 碱基是否进入更高音区；比较样本时固定调式、速度与事件上限。若序列只含 A/C/G/T 但实际上是蛋白质，必须手动指定类型。")
@@ -631,7 +645,7 @@ def build():
 
     doc.add_heading("13. 软件架构与文件职责", level=1)
     add_para(doc, "平台采用数据模型—控制引擎—界面/输出的分层结构。解析器只负责把外部文件变成 BioRecord；特征层补充数值；映射器提出 MusicEvent；GVR 决定能否发布；合成与导出层只消费通过检查的事件。")
-    add_code(doc, "Input → parsers.py → BioRecord → features.py\n      → mapping.py → MusicEvent[] → gvr.py\n      → synth.py / exporters.py → WAV / MIDI / MusicXML / PDF / Trace")
+    add_code(doc, "Input → parsers.py → BioRecord → features.py\n      → mapping.py → MusicEvent[] → gvr.py\n      → soundfont.py / synth.py / exporters.py\n      → WAV / MIDI / MusicXML / PDF / Trace")
     add_table(doc, ["文件", "职责"], [
         ("app.py", "Streamlit 中文界面、文本输入、试听、下载和科学说明"),
         ("models.py", "BioRecord、MusicEvent、Violation、GVRReport 数据结构"),
@@ -640,11 +654,13 @@ def build():
         ("codec.py", "DNA/RNA 四进制、蛋白质 21 进制、康托排名/逆排名与产物解码"),
         ("mapping.py", "三种音高策略、扩展调式、连续 CC、六声部派生与可选十二音列"),
         ("gvr.py", "按声部硬约束验证、局部修复、软齐奏提示和最终门控"),
-        ("synth.py", "古典乐器频谱近似、多声部混合、舞台声像、QC 滤波、WAV"),
+        ("soundfont.py", "SF2 文件验证、FluidSynth 采样调度、声部 preset、CC、NMA 采样背景与 WAV"),
+        ("synth.py", "SoundFont 不可用时的程序合成回退、QC 滤波与 WAV"),
         ("exporters.py", "多轨 MIDI、多 Part MusicXML、MuseScore PDF、GVR JSON"),
         ("pipeline.py", "稳定的端到端 Python API"),
         ("config/pitch_mapping.csv", "20 种氨基酸音高及事实/推断状态"),
-        ("tests/test_pipeline.py", "FASTA、PDB 连续表现、扩展调式、符号载荷、CSV 与十二音列回归测试"),
+        ("assets/soundfonts", "三个轻量 SF2、原始 FreePats 声明、许可证来源与 SHA-256"),
+        ("tests/test_pipeline.py", "FASTA、PDB 连续表现、SoundFont、扩展调式、符号载荷、CSV 与十二音列回归测试"),
         (".streamlit/config.toml", "高对比主题、headless 与关闭统计提示"),
     ], [2800, 6560], size=9.2)
     doc.add_heading("13.1 Python API", level=2)

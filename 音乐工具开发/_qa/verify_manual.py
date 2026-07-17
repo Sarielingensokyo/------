@@ -21,6 +21,10 @@ required = [
     "CC93",
     "裸音高",
     "NMA",
+    "SoundFont 采样器、音色库与许可",
+    "Clarinet-20190818.sf2",
+    "TimGM.sf2",
+    "44.1 kHz",
 ]
 stale = ["摘要前 12 个字节", "平台默认使用十二音列"]
 missing = [term for term in required if term not in all_text]
