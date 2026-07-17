@@ -85,12 +85,9 @@ def parse_pdb(data: bytes | str) -> list[BioRecord]:
             except ValueError:
                 pass
 
-    chains: dict[str, list[tuple[int, str, tuple[float, float, float]]]] = {}
-    seen: set[tuple[str, int, str]] = set()
+    chains: dict[str, dict[tuple[int, str], dict]] = {}
     for line in text.splitlines():
         if not (line.startswith("ATOM") or line.startswith("HETATM")):
-            continue
-        if line[12:16].strip() != "CA":
             continue
         alt = line[16].strip()
         if alt not in ("", "A"):
@@ -99,22 +96,41 @@ def parse_pdb(data: bytes | str) -> list[BioRecord]:
             chain = line[21].strip() or "_"
             resid = int(line[22:26])
             insertion = line[26].strip()
-            key = (chain, resid, insertion)
-            if key in seen:
-                continue
-            seen.add(key)
             residue = AA3_TO_1.get(line[17:20].strip().upper(), "X")
+            atom_name = line[12:16].strip().upper()
             xyz = (float(line[30:38]), float(line[38:46]), float(line[46:54]))
-            chains.setdefault(chain, []).append((resid, residue, xyz))
+            b_factor = float(line[60:66]) if line[60:66].strip() else 0.0
+            element = line[76:78].strip().upper()
+            if not element:
+                element = re.sub(r"[^A-Za-z]", "", atom_name)[:1].upper() or "C"
+            key = (resid, insertion)
+            entry = chains.setdefault(chain, {}).setdefault(key, {
+                "resid": resid,
+                "insertion": insertion,
+                "residue": residue,
+                "atoms": {},
+                "atom_cloud": [],
+                "b_factors": [],
+            })
+            entry["atoms"].setdefault(atom_name, xyz)
+            if element != "H":
+                entry["atom_cloud"].append((element, *xyz))
+            entry["b_factors"].append(b_factor)
+            if atom_name == "CA":
+                entry["ca_b_factor"] = b_factor
         except (ValueError, IndexError):
             continue
-    if not chains:
+    if not chains or not any("CA" in residue["atoms"] for chain in chains.values() for residue in chain.values()):
         raise ValueError("PDB 中没有找到可用的 CA 原子坐标。")
 
     output: list[BioRecord] = []
-    for chain, residues in chains.items():
+    for chain, residue_map in chains.items():
+        residues = [entry for entry in residue_map.values() if "CA" in entry["atoms"]]
+        if not residues:
+            continue
         secondary = []
-        for resid, _, _ in residues:
+        for entry in residues:
+            resid = entry["resid"]
             state = "coil"
             if any(c == chain and a <= resid <= b for c, a, b in helix_ranges):
                 state = "helix"
@@ -124,14 +140,23 @@ def parse_pdb(data: bytes | str) -> list[BioRecord]:
         output.append(BioRecord(
             name=f"PDB chain {chain}",
             data_type="protein",
-            symbols=[r[1] for r in residues],
-            source_labels=[f"{chain}:{r[0]}" for r in residues],
-            coordinates=[r[2] for r in residues],
+            symbols=[entry["residue"] for entry in residues],
+            source_labels=[f"{chain}:{entry['resid']}{entry['insertion']}" for entry in residues],
+            coordinates=[entry["atoms"]["CA"] for entry in residues],
+            backbone_atoms=[{
+                atom: entry["atoms"][atom]
+                for atom in ("N", "CA", "C") if atom in entry["atoms"]
+            } for entry in residues],
+            residue_atoms=[entry["atom_cloud"] for entry in residues],
+            b_factors=[float(entry.get("ca_b_factor", np.mean(entry["b_factors"]))) for entry in residues],
             categories={"secondary_structure": secondary},
             metadata={
                 "source_format": "PDB",
                 "chain": chain,
                 "secondary_structure_source": "PDB HELIX/SHEET records; unannotated residues are coil",
+                "atom_model": "full heavy-atom records retained when present; CA-only files use explicit feature fallbacks",
+                "heavy_atom_count": sum(len(entry["atom_cloud"]) for entry in residues),
+                "complete_backbone_residues": sum(all(atom in entry["atoms"] for atom in ("N", "CA", "C")) for entry in residues),
             },
         ))
     return output

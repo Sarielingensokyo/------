@@ -232,17 +232,36 @@ def _decode_json_artifact(data: bytes) -> tuple[str, dict[str, Any], list[list[i
     gvr = payload.get("gvr", payload)
     metadata = gvr.get("codec") or payload.get("codec")
     rows = gvr.get("tone_rows") or payload.get("tone_rows")
-    if not metadata or rows is None:
-        raise ValueError("JSON 中没有找到 codec 与 tone_rows。")
-    sequence = decode_rows(rows, metadata, verify_checksum=True)
-    return sequence, metadata, rows
+    if metadata and rows is not None:
+        sequence = decode_rows(rows, metadata, verify_checksum=True)
+        return sequence, metadata, rows
+    sequence_payload = payload.get("metadata", {}).get("sequence_payload") or payload.get("sequence_payload")
+    if sequence_payload:
+        return _sequence_from_payload(sequence_payload), sequence_payload, []
+    raise ValueError("JSON 中没有找到可逆音列或嵌入式序列载荷。")
+
+
+def _sequence_from_payload(payload: dict[str, Any]) -> str:
+    if payload.get("payload_version") != "biosound-sequence-v1":
+        raise ValueError("不支持的嵌入式序列载荷版本。")
+    sequence = str(payload.get("canonical_sequence", ""))
+    if len(sequence) != int(payload.get("length", -1)):
+        raise ValueError("嵌入式序列长度校验失败。")
+    actual_hash = hashlib.sha256(sequence.encode("ascii", errors="strict")).hexdigest()
+    if actual_hash != payload.get("sequence_sha256"):
+        raise ValueError("嵌入式序列校验和不一致。")
+    return sequence
 
 
 def _decode_musicxml_artifact(data: bytes) -> tuple[str, dict[str, Any], list[list[int]]]:
     root = ElementTree.fromstring(data)
     field = root.find("./identification/miscellaneous/miscellaneous-field[@name='biosound-codec']")
     if field is None or not field.text:
-        raise ValueError("MusicXML 中没有 BioSound 可逆编解码元数据。")
+        sequence_field = root.find("./identification/miscellaneous/miscellaneous-field[@name='biosound-sequence']")
+        if sequence_field is not None and sequence_field.text:
+            payload = json.loads(sequence_field.text)
+            return _sequence_from_payload(payload), payload, []
+        raise ValueError("MusicXML 中没有 BioSound 音列编解码或序列载荷元数据。")
     metadata = json.loads(field.text)
     part = root.find("./part")
     if part is None:
@@ -278,11 +297,12 @@ def _read_vlq(data: bytes, offset: int) -> tuple[int, int]:
             return value, offset
 
 
-def _parse_midi_track(track: bytes) -> tuple[list[int], dict[str, Any] | None]:
+def _parse_midi_track(track: bytes) -> tuple[list[int], dict[str, Any] | None, dict[str, Any] | None]:
     offset = 0
     running_status: int | None = None
     note_ons: list[int] = []
     metadata: dict[str, Any] | None = None
+    sequence_metadata: dict[str, Any] | None = None
     while offset < len(track):
         _, offset = _read_vlq(track, offset)
         if offset >= len(track):
@@ -306,6 +326,8 @@ def _parse_midi_track(track: bytes) -> tuple[list[int], dict[str, Any] | None]:
             offset += length
             if meta_type == 0x01 and payload.startswith(b"BIOSOUND_CODEC:"):
                 metadata = json.loads(payload[len(b"BIOSOUND_CODEC:"):].decode("ascii"))
+            if meta_type == 0x01 and payload.startswith(b"BIOSOUND_SEQUENCE:"):
+                sequence_metadata = json.loads(payload[len(b"BIOSOUND_SEQUENCE:"):].decode("ascii"))
             if meta_type == 0x2F:
                 break
             continue
@@ -323,7 +345,7 @@ def _parse_midi_track(track: bytes) -> tuple[list[int], dict[str, Any] | None]:
         offset += data_length
         if command == 0x90 and second > 0:
             note_ons.append(first % ROW_SIZE)
-    return note_ons, metadata
+    return note_ons, metadata, sequence_metadata
 
 
 def _decode_midi_artifact(data: bytes) -> tuple[str, dict[str, Any], list[list[int]]]:
@@ -341,11 +363,14 @@ def _decode_midi_artifact(data: bytes) -> tuple[str, dict[str, Any], list[list[i
         tracks.append(data[start:start + length])
         offset = start + length
     parsed = [_parse_midi_track(track) for track in tracks]
-    metadata = next((meta for _, meta in parsed if meta), None)
+    metadata = next((meta for _, meta, _ in parsed if meta), None)
     if metadata is None:
-        raise ValueError("MIDI 中没有 BioSound 可逆编解码元数据。")
+        sequence_metadata = next((seq for _, _, seq in parsed if seq), None)
+        if sequence_metadata:
+            return _sequence_from_payload(sequence_metadata), sequence_metadata, []
+        raise ValueError("MIDI 中没有 BioSound 音列编解码或序列载荷元数据。")
     # The exporter writes V1 immediately after the tempo/metadata track.
-    carrier_notes = next((notes for notes, _ in parsed[1:] if notes), [])
+    carrier_notes = next((notes for notes, _, _ in parsed[1:] if notes), [])
     rows = _rows_from_pitch_classes(carrier_notes, int(metadata["block_count"]))
     sequence = decode_rows(rows, metadata, verify_checksum=True)
     return sequence, metadata, rows

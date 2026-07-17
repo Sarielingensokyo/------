@@ -121,6 +121,7 @@ def events_to_musicxml(
     tempo: int,
     meter: tuple[int, int],
     codec_metadata: dict | None = None,
+    sequence_metadata: dict | None = None,
 ) -> bytes:
     beats, beat_type = meter
     capacity = beats * 4.0 / beat_type
@@ -132,9 +133,12 @@ def events_to_musicxml(
     SubElement(identification, "creator", type="software").text = "BioSound GVR Orchestral Edition"
     encoding = SubElement(identification, "encoding")
     SubElement(encoding, "software").text = "Traceable multimodal biological musification"
-    if codec_metadata:
+    if codec_metadata or sequence_metadata:
         miscellaneous = SubElement(identification, "miscellaneous")
-        SubElement(miscellaneous, "miscellaneous-field", name="biosound-codec").text = compact_codec_json(codec_metadata)
+        if codec_metadata:
+            SubElement(miscellaneous, "miscellaneous-field", name="biosound-codec").text = compact_codec_json(codec_metadata)
+        if sequence_metadata:
+            SubElement(miscellaneous, "miscellaneous-field", name="biosound-sequence").text = compact_codec_json(sequence_metadata)
     part_list = SubElement(score, "part-list")
 
     for part_number, (voice_id, voice_events) in enumerate(voices, 1):
@@ -197,12 +201,23 @@ def events_to_musicxml(
                     SubElement(note, "tie", type="stop")
                 if piece.get("tie_start"):
                     SubElement(note, "tie", type="start")
+                notations = None
                 if piece.get("tie_start") or piece.get("tie_stop"):
                     notations = SubElement(note, "notations")
                     if piece.get("tie_stop"):
                         SubElement(notations, "tied", type="stop")
                     if piece.get("tie_start"):
                         SubElement(notations, "tied", type="start")
+                if not piece["rest"] and piece.get("show_lyric") and piece["event"].articulation != "normal":
+                    if notations is None:
+                        notations = SubElement(note, "notations")
+                    articulations = SubElement(notations, "articulations")
+                    if piece["event"].articulation == "staccato":
+                        SubElement(articulations, "staccato")
+                    elif piece["event"].articulation == "tenuto":
+                        SubElement(articulations, "tenuto")
+                    elif piece["event"].articulation == "legato":
+                        SubElement(articulations, "tenuto")
                 if not piece["rest"] and piece.get("show_lyric") and voice_id == "V1_melody":
                     lyric = SubElement(note, "lyric", number="1")
                     SubElement(lyric, "text").text = piece["event"].symbol
@@ -243,12 +258,16 @@ def events_to_midi(
     tempo: int,
     ticks_per_quarter: int = 480,
     codec_metadata: dict | None = None,
+    sequence_metadata: dict | None = None,
 ) -> bytes:
     microseconds = int(60_000_000 / max(1, tempo))
     tempo_messages = [(0, 0, b"\xff\x51\x03" + microseconds.to_bytes(3, "big"))]
     if codec_metadata:
         payload = ("BIOSOUND_CODEC:" + compact_codec_json(codec_metadata)).encode("ascii")
         tempo_messages.append((0, 1, b"\xff\x01" + _vlq(len(payload)) + payload))
+    if sequence_metadata:
+        payload = ("BIOSOUND_SEQUENCE:" + compact_codec_json(sequence_metadata)).encode("ascii")
+        tempo_messages.append((0, 2, b"\xff\x01" + _vlq(len(payload)) + payload))
     tracks = [_track_chunk(tempo_messages)]
     for voice_index, (voice_id, voice_events) in enumerate(_voice_groups(events)):
         channel = voice_index if voice_index < 9 else voice_index + 1
@@ -260,10 +279,13 @@ def events_to_midi(
         ]
         for event in voice_events:
             start = int(round(event.onset * ticks_per_quarter))
-            end = int(round((event.onset + event.duration) * ticks_per_quarter))
-            pan = max(0, min(127, int(round((event.pan + 1.0) * 63.5))))
-            messages.append((start, 2, bytes([0xB0 | channel, 10, pan])))
-            messages.append((start, 3, bytes([0x90 | channel, event.midi, event.velocity])))
+            sounding_duration = max(0.03, event.duration * float(event.gate_ratio))
+            end = int(round((event.onset + sounding_duration) * ticks_per_quarter))
+            controls = dict(event.cc_controls)
+            controls.setdefault(10, max(0, min(127, int(round((event.pan + 1.0) * 63.5)))))
+            for control_index, (controller, value) in enumerate(sorted(controls.items())):
+                messages.append((start, 2 + control_index, bytes([0xB0 | channel, int(controller), max(0, min(127, int(value)))])))
+            messages.append((start, 8, bytes([0x90 | channel, event.midi, event.velocity])))
             messages.append((end, 0, bytes([0x80 | channel, event.midi, 0])))
         tracks.append(_track_chunk(messages))
     header = b"MThd" + struct.pack(">IHHH", 6, 1, len(tracks), ticks_per_quarter)

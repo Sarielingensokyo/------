@@ -22,7 +22,8 @@ def _adsr(length: int, sample_rate: int) -> np.ndarray:
 def _tone(event: MusicEvent, samples: int, sample_rate: int, rng: np.random.Generator) -> np.ndarray:
     t = np.arange(samples, dtype=np.float32) / sample_rate
     frequency = 440.0 * (2.0 ** ((event.midi - 69) / 12.0))
-    vibrato = 0.0035 * np.sin(2 * np.pi * 5.2 * t)
+    modulation = float(event.cc_controls.get(1, 15)) / 127.0
+    vibrato = (0.002 + 0.012 * modulation) * np.sin(2 * np.pi * (4.7 + 1.1 * modulation) * t)
     phase = 2 * np.pi * frequency * t + vibrato
     if event.timbre == "flute":
         signal = 0.90 * np.sin(phase) + 0.08 * np.sin(2 * phase)
@@ -49,6 +50,10 @@ def _tone(event: MusicEvent, samples: int, sample_rate: int, rng: np.random.Gene
     peak = float(np.max(np.abs(signal))) if len(signal) else 1.0
     if peak > 1.0:
         signal = signal / peak
+    brightness = float(np.clip(event.brightness, 0, 1))
+    window = 1 + int(round((1.0 - brightness) * 18.0))
+    if window > 1:
+        signal = np.convolve(signal, np.ones(window, dtype=np.float32) / window, mode="same")
     return (signal * _adsr(samples, sample_rate)).astype(np.float32)
 
 
@@ -81,6 +86,7 @@ def render_wav(
     rendered_events = 0
     role_gains = {
         "foreground_melody": 0.34,
+        "lossless_codec_carrier": 0.34,
         "derived_counterpoint": 0.27,
         "structural_bass": 0.30,
         "structural_harmony": 0.22,
@@ -91,22 +97,42 @@ def render_wav(
         start = int(event.onset * seconds_per_beat * sample_rate)
         if start >= total_samples:
             break
-        length = min(int(event.duration * seconds_per_beat * sample_rate), total_samples - start)
+        sounding_beats = max(0.03, event.duration * float(event.gate_ratio))
+        length = min(int(sounding_beats * seconds_per_beat * sample_rate), total_samples - start)
         if length <= 0:
             continue
         tone = _tone(event, length, sample_rate, rng) * (event.velocity / 127.0) * role_gains.get(event.role, 0.26)
         angle = (event.pan + 1.0) * np.pi / 4.0
         stereo[start:start + length, 0] += tone * np.cos(angle)
         stereo[start:start + length, 1] += tone * np.sin(angle)
+        wet = float(np.clip(event.reverb_mix, 0, 0.6))
+        width = float(np.clip(event.spatial_width, 0, 1))
+        chorus = float(np.clip(event.cc_controls.get(93, 0) / 127.0, 0, 0.65))
+        for delay_s, left_gain, right_gain in ((0.012, 0.07, 0.025), (0.019, 0.025, 0.07)):
+            delay = int(delay_s * sample_rate)
+            chorus_start = start + delay
+            chorus_length = min(length, total_samples - chorus_start)
+            if chorus_length > 0:
+                stereo[chorus_start:chorus_start + chorus_length, 0] += tone[:chorus_length] * chorus * width * left_gain
+                stereo[chorus_start:chorus_start + chorus_length, 1] += tone[:chorus_length] * chorus * width * right_gain
+        for delay_s, gain in ((0.029 + 0.012 * width, 0.34 * wet), (0.061 + 0.018 * width, 0.22 * wet)):
+            delay = int(delay_s * sample_rate)
+            wet_start = start + delay
+            wet_length = min(length, total_samples - wet_start)
+            if wet_length > 0:
+                stereo[wet_start:wet_start + wet_length, 0] += tone[:wet_length] * gain * (0.72 + 0.28 * width)
+                stereo[wet_start:wet_start + wet_length, 1] += tone[:wet_length] * gain * (0.72 + 0.28 * width)
         rendered_events += 1
 
     if nma and nma.get("available"):
         t = np.arange(total_samples, dtype=np.float32) / sample_rate
         drone = np.zeros(total_samples, dtype=np.float32)
-        for freq in nma.get("audible_frequencies_hz", [])[:6]:
-            phase = 2 * np.pi * float(freq) * t + 0.003 * np.sin(2 * np.pi * 4.8 * t)
+        for mode_index, freq in enumerate(nma.get("audible_frequencies_hz", [])[:3]):
+            slow_rate = 0.07 + 0.035 * mode_index
+            phase = 2 * np.pi * float(freq) * t + 0.018 * np.sin(2 * np.pi * slow_rate * t + mode_index)
             # A quiet low-string/horn-like spectrum; no electronic/granular timbre.
-            drone += (np.sin(phase) + 0.24 * np.sin(2 * phase) + 0.10 * np.sin(3 * phase)).astype(np.float32)
+            breath = 0.78 + 0.22 * np.sin(2 * np.pi * slow_rate * t + 1.3 * mode_index)
+            drone += ((np.sin(phase) + 0.24 * np.sin(2 * phase) + 0.10 * np.sin(3 * phase)) * breath).astype(np.float32)
         if np.max(np.abs(drone)) > 0:
             drone /= np.max(np.abs(drone))
             stereo[:, 0] += 0.035 * drone

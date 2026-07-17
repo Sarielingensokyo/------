@@ -13,6 +13,9 @@ class BioRecord:
     features: dict[str, list[float]] = field(default_factory=dict)
     categories: dict[str, list[str]] = field(default_factory=dict)
     coordinates: list[tuple[float, float, float]] | None = None
+    backbone_atoms: list[dict[str, tuple[float, float, float]]] | None = None
+    residue_atoms: list[list[tuple[str, float, float, float]]] | None = None
+    b_factors: list[float] | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
     @property
@@ -42,6 +45,12 @@ class MusicEvent:
     row_form: str | None = None
     codec_block: int | None = None
     is_codec_carrier: bool = False
+    gate_ratio: float = 0.9
+    articulation: str = "normal"
+    cc_controls: dict[int, int] = field(default_factory=dict)
+    brightness: float = 0.7
+    reverb_mix: float = 0.15
+    spatial_width: float = 0.3
     status: str = "proposed"
 
     def to_dict(self) -> dict[str, Any]:

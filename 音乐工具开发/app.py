@@ -58,7 +58,7 @@ st.markdown(
       <h1>BioSound GVR</h1>
       <p>把序列、结构与多组学指标编译为可追溯的多声部古典室内乐。主旋律、对位、低音、和声场与结构重音均有独立乐器、独立 MIDI 通道和独立谱表。</p>
       <span class="badge">FASTA · PDB · CSV · 文本序列</span><span class="badge">Classical orchestration</span>
-      <span class="badge">MIDI · MusicXML · PDF</span><span class="badge">Auditable trace</span>
+      <span class="badge">MIDI · MusicXML · PDF</span><span class="badge">多调式 · 连续蛋白质表现层</span>
     </div>
     """,
     unsafe_allow_html=True,
@@ -114,18 +114,37 @@ with st.sidebar:
         except Exception as exc:
             st.error(str(exc))
 
-    pitch_mode = st.selectbox("音高策略", ["生物物理映射", "文献氨基酸映射", "可逆十二音列编解码"])
+    pitch_mode = st.selectbox(
+        "音高策略",
+        ["生物物理调式映射（推荐）", "文献氨基酸映射（复现）", "可逆十二音列载体（实验）"],
+    )
+    with st.expander("三种音高策略有什么区别？"):
+        st.markdown(
+            """
+            **生物物理调式映射（推荐）**：输入符号依次进入所选调式，疏水性、电荷、结构、SASA、B-factor 等控制音区、力度、奏法和空间。更适合形成可听的古典音乐；原序列作为带校验的符号载荷写入 JSON、MusicXML 和 MIDI，但不能只凭裸音高反推。
+
+            **文献氨基酸映射（复现）**：蛋白质音高使用 `pitch_mapping.csv`，主要用于复现 Spinning Melodies 体系；未被原文覆盖的残基保留“扩展推断”标记。
+
+            **可逆十二音列载体（实验）**：DNA/RNA 每 12 个碱基、蛋白质每 6 个残基编码为一条全排列。可从未修改的载体音级严格解码，但音响更无调性，建议用于编码实验而非默认创作。
+            """
+        )
     st.caption("所有试听与 MIDI 音色仅使用古典管弦乐器：木管、弦乐、圆号和竖琴。")
-    scale_name = st.selectbox("调式", ["多利亚调式", "五声音阶", "自然小调", "半音阶"])
-    row_form = st.selectbox("十二音列呈现形式", ["P", "I", "R", "RI"], disabled=pitch_mode != "可逆十二音列编解码")
-    if pitch_mode == "可逆十二音列编解码":
+    scale_name = st.selectbox("调式 / 音阶", [
+        "多利亚调式", "大调（伊奥尼亚）", "自然小调", "和声小调", "旋律小调",
+        "弗里几亚调式", "利底亚调式", "混合利底亚调式", "洛克里亚调式",
+        "五声音阶", "小调五声音阶", "布鲁斯音阶", "全音音阶",
+        "八音音阶（全-半）", "八音音阶（半-全）", "半音阶",
+    ])
+    st.caption("调式主要决定推荐生物物理模式的音级集合，并影响派生和声；实验性十二音列的载体音级不受调式量化。")
+    row_form = st.selectbox("十二音列呈现形式", ["P", "I", "R", "RI"], disabled=pitch_mode != "可逆十二音列载体（实验）")
+    if pitch_mode == "可逆十二音列载体（实验）":
         st.caption("DNA/RNA 每 12 个碱基、蛋白质每 6 个残基编码为一条音列；P/I/R/RI 会写入元数据并在解码前逆变换。")
     tempo = st.slider("速度（四分音符/分钟）", 48, 160, 96)
     meter = st.selectbox("拍号", ["4/4", "3/4", "6/8", "5/4"])
     meter_beats, meter_beat_type = map(int, meter.split("/"))
     max_events = st.slider(
         "最多生成事件", 24, 600, 240, step=12,
-        disabled=pitch_mode == "可逆十二音列编解码",
+        disabled=pitch_mode == "可逆十二音列载体（实验）",
         help="可逆模式必须保留全部载体音符，因此不会抽样；此上限仅用于其他映射模式。",
     )
     texture_density = st.slider(
@@ -169,8 +188,8 @@ if run:
         st.error(f"生成失败：{exc}")
 
 
-with st.expander("从平台产物还原 DNA / RNA / 蛋白质序列", expanded=False):
-    st.caption("严格解码平台导出的 GVR JSON、MusicXML 或 MIDI。WAV 不作为无损载体；非法音列不会被静默修复。")
+with st.expander("从平台产物恢复 DNA / RNA / 蛋白质序列", expanded=False):
+    st.caption("JSON、MusicXML 和 MIDI 可恢复随谱保存的带校验符号载荷；十二音列实验模式还会严格验证实际载体音级。WAV 不保存符号元数据。")
     encoded_upload = st.file_uploader(
         "上传待解码文件", type=["json", "musicxml", "xml", "mid", "midi"], key="codec_decoder"
     )
@@ -183,7 +202,8 @@ with st.expander("从平台产物还原 DNA / RNA / 蛋白质序列", expanded=F
             st.error(f"解码失败：{exc}")
     if st.session_state.get("decoded_codec"):
         decoded_sequence, decoded_meta, decoded_rows = st.session_state["decoded_codec"]
-        st.success(f"校验通过：恢复 {len(decoded_sequence)} 个符号，共 {len(decoded_rows)} 个载体块。")
+        detail = f"，并验证 {len(decoded_rows)} 个十二音列块" if decoded_rows else "（来自带校验的符号载荷）"
+        st.success(f"校验通过：恢复 {len(decoded_sequence)} 个符号{detail}。")
         st.code(decoded_sequence)
         extension = "faa" if decoded_meta["data_type"] == "protein" else ("fna" if decoded_meta["data_type"] == "dna" else "fa")
         fasta = f">decoded_{decoded_meta['data_type']}\n{decoded_sequence}\n".encode("utf-8")
@@ -200,7 +220,7 @@ if result is None:
         ### 映射路线
 
         **一维序列**决定音乐时间线；**理化性质与 QC**控制音域、时值、力度、音色与滤波；
-        **PDB 坐标和接触度**控制左右声像与音域张力；**GVR**阻止错误映射或不可追溯事件进入下载结果。
+        **PDB 全原子/CA 特征**控制奏法、亮度、混响、左右声像与结构背景；**GVR**阻止错误映射或不可追溯事件进入下载结果。
         """
     )
     st.stop()
@@ -237,7 +257,13 @@ with workbench:
             for voice_id, info in summary["voices"].items()
         ]
         st.dataframe(pd.DataFrame(orchestration_rows), use_container_width=True, hide_index=True)
-        feature_names = [k for k, v in result.record.features.items() if len(v) == result.record.length][:4]
+        preferred_features = [
+            "relative_sasa", "surface_wetness", "backbone_rigidity", "b_factor_normalized",
+            "sidechain_mass_normalized", "hydropathy_normalized", "contact_degree", "spatial_pan",
+        ]
+        feature_names = [k for k in preferred_features if len(result.record.features.get(k, [])) == result.record.length][:5]
+        if not feature_names:
+            feature_names = [k for k, v in result.record.features.items() if len(v) == result.record.length][:4]
         if feature_names:
             chart = pd.DataFrame({k: result.record.features[k][:300] for k in feature_names})
             chart.index.name = "数据位置"
@@ -250,7 +276,7 @@ with workbench:
         st.download_button("下载 MusicXML", result.musicxml, f"{safe_name}.musicxml", "application/vnd.recordare.musicxml+xml", use_container_width=True)
         st.download_button("下载音符溯源 CSV", result.trace_csv, f"{safe_name}_trace.csv", "text/csv", use_container_width=True)
         st.download_button("下载 GVR 报告 JSON", result.report_json, f"{safe_name}_gvr.json", "application/json", use_container_width=True)
-        manual_path = ROOT / "BioSound_GVR可逆十二音列版平台功能与原理说明.docx"
+        manual_path = ROOT / "BioSound_GVR生物物理表现层增强版平台说明.docx"
         if manual_path.exists():
             st.download_button(
                 "下载完整平台说明手册",
@@ -312,6 +338,16 @@ with mapping_tab:
             st.success("本次候选事件无需修复。")
     st.subheader("当前氨基酸音高配置（配器独立由理化特征决定）")
     st.dataframe(pd.read_csv(ROOT / "config" / "pitch_mapping.csv"), use_container_width=True, height=310)
+    if result.record.data_type == "protein":
+        st.subheader("蛋白质连续表现层")
+        st.dataframe(pd.DataFrame([
+            {"生物量": "二级结构 + φ/ψ连续变化", "音乐参数": "时值网格、gate ratio、连奏/断奏", "不改变": "载体音级与来源顺序"},
+            {"生物量": "侧链质量（归一化）", "音乐参数": "CC74亮度与网页逐音符低通", "不改变": "乐器身份"},
+            {"生物量": "相对SASA × 亲水性", "音乐参数": "CC91混响、CC93合唱、空间宽度", "不改变": "左右坐标来源"},
+            {"生物量": "中心化CA-x", "音乐参数": "CC10左右声像", "不改变": "序列符号"},
+            {"生物量": "CA B-factor / 模型置信字段", "音乐参数": "CC1调制深度", "不改变": "音高类别"},
+            {"生物量": "前三个非刚体NMA模态", "音乐参数": "圆号/低弦式持续背景", "不改变": "V1主旋律"},
+        ]), use_container_width=True, hide_index=True)
 
 with science_tab:
     st.markdown(
@@ -323,6 +359,14 @@ with science_tab:
     )
     st.subheader("NMA 状态")
     st.json(result.nma)
+    if result.record.data_type == "protein":
+        st.subheader("蛋白质结构特征来源")
+        st.json({
+            "SASA": result.record.metadata.get("sasa_source", "未计算"),
+            "二面角/刚度": result.record.metadata.get("dihedral_source", "未计算"),
+            "B-factor": result.record.metadata.get("b_factor_source", "未计算"),
+            "二级结构": result.record.metadata.get("secondary_structure_source", "纯序列默认 coil 基线"),
+        })
     st.subheader("QC 声学审计")
     st.write(
         "CSV 会先依据列名区分表达矩阵、表观信号、代谢丰度、质谱峰与 GWAS/EWAS 类关联景观；无法识别时才启用“行为细胞、列为基因”的表达矩阵假设。"
@@ -338,4 +382,11 @@ with science_tab:
         st.write(
             "只有 V1 生物主旋律的连续十二音级块参与解码；对位、低音、圆号、中提琴与竖琴均为表现层。"
             "未修改且保留元数据的 JSON、MusicXML、MIDI 可严格往返；WAV、丢失元数据或越界编辑不承诺无损。"
+        )
+    elif result.record.data_type in {"dna", "rna", "protein"}:
+        st.subheader("信息保真与可逆性的准确范围")
+        st.write(
+            "推荐调式映射和文献复现模式以音乐可听性与生物语义为优先，不要求裸音高独自承载全部序列。"
+            "平台会把规范化序列及 SHA-256 校验写入 GVR JSON、MusicXML 与 MIDI，因此这些完整产物可恢复原符号串；"
+            "若元数据被宿主软件删除，则不能仅凭旋律保证逆向还原。十二音列实验模式才额外提供音高载体级严格解码。"
         )

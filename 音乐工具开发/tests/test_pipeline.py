@@ -110,6 +110,36 @@ class PipelineTests(unittest.TestCase):
         self.assertTrue(result.nma["available"])
         self.assertIn("spatial_pan", result.record.features)
         self.assertTrue(any(abs(e.pan) > 0.1 for e in result.events))
+        self.assertIsNone(result.report.codec)
+        self.assertIn("relative_sasa", result.record.features)
+        self.assertIn("backbone_rigidity", result.record.features)
+        self.assertIn("b_factor_normalized", result.record.features)
+        melody = [event for event in result.events if event.voice_id == "V1_melody"]
+        self.assertTrue(all({1, 10, 74, 91, 93} <= set(event.cc_controls) for event in melody))
+        self.assertTrue(all(0.0 < event.gate_ratio <= 1.0 for event in melody))
+        self.assertIn("contact-density exposure proxy", result.record.metadata["sasa_source"])
+        original = "".join(result.record.symbols)
+        for filename, artifact in (
+            ("physical.json", result.report_json),
+            ("physical.musicxml", result.musicxml),
+            ("physical.mid", result.midi),
+        ):
+            decoded, metadata, rows = decode_artifact(filename, artifact)
+            self.assertEqual(decoded, original)
+            self.assertEqual(rows, [])
+            self.assertEqual(metadata["payload_version"], "biosound-sequence-v1")
+
+    def test_extended_scale_is_available(self):
+        data = (ROOT / "examples" / "example_protein.fasta").read_bytes()
+        result = run_pipeline(
+            "example_protein.fasta",
+            data,
+            SonificationSettings(
+                pitch_mode="生物物理调式映射（推荐）", scale_name="利底亚调式", max_events=36, max_audio_seconds=2,
+            ),
+        )
+        self.assertEqual(result.summary["pitch_mode"], "生物物理调式映射（推荐）")
+        self.assertIsNone(result.report.codec)
 
     def test_csv_qc_filter(self):
         data = (ROOT / "examples" / "example_expression.csv").read_bytes()

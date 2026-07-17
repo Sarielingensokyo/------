@@ -1,0 +1,105 @@
+{
+  "title": "结构呼吸_利底亚版",
+  "source": "examples\\example_structure.pdb",
+  "settings": {
+    "pitch_mode": "生物物理调式映射（推荐）",
+    "scale": "利底亚调式",
+    "root_midi": 60,
+    "tempo": 84,
+    "meter": "6/8",
+    "texture_density": 6,
+    "counterpoint_strength": 0.78,
+    "nma_enabled": true
+  },
+  "summary": {
+    "record_name": "PDB chain A",
+    "data_type": "protein",
+    "source_items": 12,
+    "musical_events": 38,
+    "voice_count": 6,
+    "voices": {
+      "V1_melody": {
+        "events": 12,
+        "instrument": "oboe",
+        "role": "foreground_melody"
+      },
+      "V2_counterpoint": {
+        "events": 5,
+        "instrument": "violin",
+        "role": "derived_counterpoint"
+      },
+      "V3_bass": {
+        "events": 1,
+        "instrument": "cello",
+        "role": "structural_bass"
+      },
+      "V4_horn_harmony": {
+        "events": 1,
+        "instrument": "french_horn",
+        "role": "structural_harmony"
+      },
+      "V5_viola_harmony": {
+        "events": 1,
+        "instrument": "viola",
+        "role": "inner_harmony"
+      },
+      "V6_harp_accents": {
+        "events": 18,
+        "instrument": "orchestral_harp",
+        "role": "structural_accent"
+      }
+    },
+    "downsample_stride": 1,
+    "pitch_mode": "生物物理调式映射（推荐）",
+    "tempo": 84,
+    "meter": "6/8",
+    "gvr_passed": true,
+    "repairs": 0,
+    "mean_mitochondrial_fraction": 0.0,
+    "nma_available": true,
+    "texture_density": 6,
+    "lossless_codec": false,
+    "codec_blocks": 0,
+    "codec_version": null,
+    "scientific_scope": "可追溯的规则与相对物理特征声学化；不是分子真实声波的直接录音。"
+  },
+  "feature_sources": {
+    "sasa": "CA contact-density exposure proxy; not atomistic SASA",
+    "dihedral": "PDB HELIX/SHEET baseline; insufficient N-CA-C atoms for phi/psi",
+    "b_factor": "CA B-factor; predicted-model files may store confidence rather than thermal displacement",
+    "secondary_structure": "PDB HELIX/SHEET records; unannotated residues are coil"
+  },
+  "information_fidelity": {
+    "description": "推荐映射不把全部信息硬塞进裸音高；原始规范化序列以带 SHA-256 校验的符号载荷写入完整产物。",
+    "artifact_decode_checks": {
+      ".mid": {
+        "sequence_matches_source": true,
+        "recovered_length": 12,
+        "pitch_rows_used_for_recovery": 0,
+        "payload_version": "biosound-sequence-v1"
+      },
+      ".musicxml": {
+        "sequence_matches_source": true,
+        "recovered_length": 12,
+        "pitch_rows_used_for_recovery": 0,
+        "payload_version": "biosound-sequence-v1"
+      },
+      "_gvr.json": {
+        "sequence_matches_source": true,
+        "recovered_length": 12,
+        "pitch_rows_used_for_recovery": 0,
+        "payload_version": "biosound-sequence-v1"
+      }
+    }
+  },
+  "scientific_scope": "示例 PDB 只有 CA 原子，因此 rSASA 使用接触密度暴露代理，主链刚度使用 HELIX/SHEET/coil 基线；上传全原子 PDB 后才启用轻量 Shrake-Rupley rSASA 与 phi/psi 连续变化。",
+  "pdf_export": "PDF 已由本机 MuseScore 生成。",
+  "files": [
+    "结构呼吸_利底亚版.mid",
+    "结构呼吸_利底亚版.musicxml",
+    "结构呼吸_利底亚版.pdf",
+    "结构呼吸_利底亚版.wav",
+    "结构呼吸_利底亚版_gvr.json",
+    "结构呼吸_利底亚版_trace.csv"
+  ]
+}

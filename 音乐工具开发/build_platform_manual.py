@@ -12,7 +12,7 @@ from docx.shared import Inches, Pt, RGBColor
 
 
 ROOT = Path(__file__).resolve().parent
-OUTPUT = ROOT / "BioSound_GVR可逆十二音列版平台功能与原理说明.docx"
+OUTPUT = ROOT / "BioSound_GVR生物物理表现层增强版平台说明.docx"
 
 # compact_reference_guide tokens + named CJK font override
 BLUE = "2E74B5"
@@ -317,11 +317,11 @@ def add_cover(doc):
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     p.paragraph_format.space_after = Pt(10)
-    set_font(p.add_run("多声部管弦乐版\n平台功能与原理说明"), size=27, color=NAVY, bold=True)
+    set_font(p.add_run("生物物理表现层增强版\n平台功能与原理说明"), size=27, color=NAVY, bold=True)
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     p.paragraph_format.space_after = Pt(24)
-    set_font(p.add_run("从生物序列、三维结构与多组学指标到可追溯的六声部古典编配"), size=14, color=DARK_BLUE)
+    set_font(p.add_run("从连续结构特征、可选调式与多组学指标到可追溯的六声部古典编配"), size=14, color=DARK_BLUE)
     add_callout(
         doc,
         "适用对象",
@@ -332,7 +332,7 @@ def add_cover(doc):
         doc.add_paragraph()
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    set_font(p.add_run("版本 2.0  |  2026 年 7 月 16 日  |  本地离线多声部版"), size=10.5, color=MUTED, bold=True)
+    set_font(p.add_run("版本 3.0  |  2026 年 7 月 16 日  |  本地离线连续表现层版"), size=10.5, color=MUTED, bold=True)
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     set_font(p.add_run("工作目录：C:\\Users\\34591\\Desktop\\音乐基因转化\\音乐工具开发"), size=9, color=MUTED)
@@ -352,10 +352,10 @@ def build():
         "第 3 章：文本、FASTA、PDB 与 CSV 输入规范",
         "第 4 章：试听、审计与全部导出功能",
         "第 5 章：序列与理化特征提取原理",
-        "第 6 章：PDB 空间声像、接触图与粗粒化 NMA",
+        "第 6 章：PDB 相对 SASA、二面角、B-factor、空间声像与 NMA",
         "第 7 章：表达、表观、代谢、质谱与关联数据声学化",
         "第 8 章：六声部古典编配、独立谱表与音频合成",
-        "第 9 章：十二音列与 Generate–Verify–Repair",
+        "第 9 章：信息保真、可选十二音列与 Generate–Verify–Repair",
         "第 10 章：溯源、可复现性与科研使用",
         "第 11 章：多类输入的完整示例工作流",
         "第 12–14 章：故障排查、软件架构、测试与扩展",
@@ -392,11 +392,11 @@ def build():
         ("序列名称", "为纯文本序列生成 FASTA 标题", "使用样本号或基因/蛋白名称"),
         ("序列类型", "自动识别、蛋白质、DNA、RNA", "含模糊字符时手动指定"),
         ("记录/链", "多 FASTA 记录或多 PDB 链的选择器", "每次处理一个记录"),
-        ("音高策略", "生物物理映射、文献氨基酸映射、可逆十二音列编解码", "科研比较时保存设置"),
-        ("调式", "多利亚、五声、自然小调、半音阶", "文献映射模式主要影响非蛋白输入"),
-        ("十二音列形式", "P、I、R、RI", "仅十二音列模式启用"),
+        ("音高策略", "推荐生物物理调式、文献复现、实验性十二音列", "默认使用推荐模式"),
+        ("调式/音阶", "教会调式、大小调、五声、布鲁斯、全音、八音、半音", "影响推荐模式和派生和声"),
+        ("十二音列形式", "P、I、R、RI", "仅实验性十二音列启用"),
         ("速度/拍号", "控制播放时间与小节组织", "同批比较保持一致"),
-        ("最多生成事件", "对非可逆模式的超长输入等间隔抽样", "可逆模式自动禁用抽样"),
+        ("最多生成事件", "对推荐/文献模式的超长输入等间隔抽样", "十二音列实验模式自动禁用抽样"),
         ("古典编配层数", "从 1 到 6 逐步加入对位、低音、圆号、中提琴和竖琴", "需要完整效果时选 6"),
         ("对位独立度", "控制小提琴延迟、反向音区与主旋律的差异", "初学者建议 0.70"),
         ("随机种子", "固定试听合成细节；不参与可逆音列编码", "同一实验固定种子"),
@@ -408,7 +408,7 @@ def build():
     add_bullet(doc, "生物—音乐轨迹：逐行查看声部、音乐功能、主事件 ID、来源位置、符号、起拍、时值、MIDI、音级、声像、乐器、状态和映射理由。")
     add_bullet(doc, "GVR 与映射：检查硬规则是否通过、查看修复日志、核对氨基酸音高配置。")
     add_bullet(doc, "科学边界：查看 NMA 参数、CSV QC 假设和论文方法在本平台中的实现边界。")
-    add_para(doc, "页面另设“从平台产物还原 DNA / RNA / 蛋白质序列”面板，可严格读取平台生成的 GVR JSON、MusicXML 或 MIDI。WAV 只用于试听，不作为无损解码载体。")
+    add_para(doc, "页面另设序列恢复面板。推荐/文献模式从 JSON、MusicXML、MIDI 中的带校验符号载荷恢复规范化序列；实验性十二音列还会核对实际载体音级。WAV 只用于试听，不保存符号元数据。")
 
     doc.add_heading("3. 输入格式与解析规则", level=1)
     doc.add_heading("3.1 直接粘贴序列", level=2)
@@ -440,35 +440,43 @@ def build():
         ("MusicXML", "每声部独立 Part、谱表、拍号、速度、歌词符号与乐器定义", "MuseScore/Sibelius 总谱与分谱"),
         ("PDF", "由本机 MuseScore 从 MusicXML 排版", "打印、分享、课堂展示"),
         ("Trace CSV", "逐音符来源与全部映射证书", "复现、审计、统计"),
-        ("GVR JSON", "元数据、检查、修复、NMA、音频参数与完整载体音列", "研究归档、严格解码"),
+        ("GVR JSON", "元数据、检查、修复、NMA、符号载荷；实验模式另含音列", "研究归档、序列恢复"),
     ], [1350, 4450, 3560], size=9.3)
     add_para(doc, "PDF 按钮需要本机安装 MuseScore 4。若检测不到 MuseScore，平台仍提供 MusicXML；用户可在任意兼容软件中手动导出 PDF。")
 
     doc.add_page_break()
     doc.add_heading("5. 序列与理化特征提取原理", level=1)
     doc.add_heading("5.1 蛋白质特征", level=2)
-    add_para(doc, "每个氨基酸按 Kyte–Doolittle 疏水性表赋值 h，平台使用 h_norm = clip((h + 4.5) / 9, 0, 1) 归一化。酸性残基 D/E 的电荷取 -1，碱性 K/R 取 +1，H 取 +0.25；分子质量按常见残基质量表归一化到 75–205 Da。")
+    add_para(doc, "每个氨基酸按 Kyte–Doolittle 疏水性表赋值 h，平台使用 h_norm = clip((h + 4.5) / 9, 0, 1) 归一化。酸性残基 D/E 的电荷取 -1，碱性 K/R 取 +1，H 取 +0.25。完整残基质量用于审计，侧链质量近似为 MW_side = max(MW_residue - 74.06, 0)，再在固定范围内归一化，用于连续亮度控制而非切换电子音色。")
     add_table(doc, ["特征", "进入音乐的主要通道", "解释"], [
         ("氨基酸身份", "文献音高或调式级数", "保留字母/残基差异"),
         ("疏水性", "主旋律时值、内声部音区与和声色彩", "局部理化差异的听觉代理"),
-        ("电荷", "主旋律八度、力度与十二音列目标音区", "正负电性的听觉对比"),
-        ("残基质量", "当前写入特征层，供扩展", "可用于后续密度或力度实验"),
+        ("电荷", "主旋律音区与力度", "正负电性的听觉对比"),
+        ("侧链质量", "CC74 与网页逐音符低通亮度", "小侧链明亮；大侧链较暗厚"),
+        ("相对 SASA × 亲水性", "CC91/93、混响、合唱和空间宽度", "表达暴露且亲水的表面环境"),
+        ("B-factor", "CC1 调制深度", "字段含义须根据实验/预测文件核对"),
     ], [1900, 3350, 4110])
     doc.add_heading("5.2 DNA 与 RNA 特征", level=2)
     add_para(doc, "碱基身份 A/C/G/T(U)/N 被映射到所选调式的不同级数；G 或 C 的 GC 指示值控制高低音区，A 或 G 的 purine 指示值与 GC 加权形成 value = 0.65×GC + 0.35×purine。该设计让碱基身份、GC 与嘌呤/嘧啶差异进入不同音乐维度。")
-    doc.add_heading("5.3 时值", level=2)
-    add_para(doc, "PDB 有二级结构时：helix = 1 个四分音符拍，sheet = 1.5 拍，coil = 0.5 拍。只有序列时，疏水性高的残基通常为 0.5 拍，亲水性强的残基为 1 拍，中间区域为 0.75 拍。组学行的 detected_features 控制 0.5–1.5 拍。所有时值量化到 0.25 拍。")
+    doc.add_heading("5.3 时值与门限奏法", level=2)
+    add_para(doc, "平台把时间网格 duration 与实际发声比例 gate_ratio 分开。二级结构提供基线：helix 倾向接近 100% 的连奏，sheet 倾向约一半门限的断奏，coil 位于中间；主链 φ/ψ 的连续变化再对该基线作平滑修正。MIDI 音符关闭时间使用 duration × gate_ratio，MusicXML 写入 staccato/tenuto，网页 WAV 使用相同门限。这样既表达结构刚柔，又避免只靠三档时值产生机械割裂。")
     doc.add_heading("5.4 超长序列抽样", level=2)
-    add_para(doc, "非可逆模式下，若输入长度 N 大于“最多生成事件”M，步长 stride = ceil(N/M)，按 0, stride, 2×stride…选择数据点。Trace CSV 保存真实 source_index。可逆十二音列模式绝不抽样：DNA/RNA 每块固定生成 12 个载体音符，蛋白质每 6 个残基生成 12 个载体音符；只有 WAV 试听可能按时长截断。")
+    add_para(doc, "推荐/文献模式下，若输入长度 N 大于“最多生成事件”M，步长 stride = ceil(N/M)，按 0, stride, 2×stride…选择数据点。Trace CSV 保存真实 source_index，完整规范化序列仍保留在符号载荷中。十二音列实验模式不抽样：DNA/RNA 每块生成 12 个载体音符，蛋白质每 6 个残基生成 12 个载体音符；WAV 试听仍可能按时长截断。")
 
-    doc.add_heading("6. PDB 空间声像、接触图与粗粒化 NMA", level=1)
+    doc.add_heading("6. PDB 连续结构特征、空间声像与粗粒化 NMA", level=1)
     doc.add_heading("6.1 三维坐标到左右声像", level=2)
     add_para(doc, "对每条链的 CA 坐标先减去质心。x 坐标按该链的 x 轴跨度归一化到 [-1, 1]：-1 为左，0 为中央，+1 为右。网页 WAV 使用等功率声像：left = cos((pan+1)π/4)，right = sin((pan+1)π/4)。因此耳机中左右能量连续变化，而不是简单开关。")
     doc.add_heading("6.2 接触度", level=2)
     add_para(doc, "任意两 CA 原子距离小于 8 Å 且不为自身时记为一次接触。每个残基的接触数量在链内归一化到 0–1，主要影响音区与大提琴配器：高接触度更容易进入较厚重、较集中声部。8 Å 是粗粒化接触图常见量级，本平台把它作为可配置 MVP 规则，不等同于化学键。")
-    doc.add_heading("6.3 粗粒化 NMA", level=2)
+    doc.add_heading("6.3 相对 SASA 与表面湿润度", level=2)
+    add_para(doc, "全原子 PDB 由内置轻量 Shrake–Rupley 近似计算溶剂可及面积：范德华半径外加 1.4 Å 探针，每个重原子取 48 个 Fibonacci 球面采样点。残基面积除以该残基类型的最大参考面积，得到 rSASA∈[0,1]。若文件只有 CA 或超过内部计算上限，平台明确使用 1-contact_degree 作为暴露代理，并把 sasa_source 写入元数据。")
+    add_para(doc, "高 SASA 不自动等于水溶性好。平台定义 surface_wetness = rSASA × (1-hydropathy_normalized)，让暴露且亲水的残基获得较大的 CC91 混响和空间宽度；暴露疏水残基不会被错误描述为“湿润”。")
+    doc.add_heading("6.4 主链二面角、连续刚度与 B-factor", level=2)
+    add_para(doc, "若存在连续 N–CA–C 主链原子，平台计算 φ/ψ，并把相邻角差折回 [-180°,180°]，再计算 D_i = sqrt(Δφ_i² + Δψ_i²)。D 只表示局部构象变化，不能单独等同于刚性；最终 backbone_rigidity 将 D 的稳健归一化结果与 HELIX/SHEET/coil 基线加权。原子不足时只使用带来源标签的二级结构基线。")
+    add_para(doc, "CA B-factor 在链内按 5–95 百分位稳健归一化并映射到 CC1。晶体结构中它与位移/无序相关；AlphaFold 类预测 PDB 可能把 pLDDT 写入同一列，因此平台只称其为“字段驱动调制”，不会自动解释为热振动。")
+    doc.add_heading("6.5 粗粒化 NMA", level=2)
     add_para(doc, "平台以 CA 节点建立单位弹簧各向异性网络模型。距离不超过默认 12 Å 的节点对建立弹簧，方向向量 d 形成 3×3 子块 -ddᵀ/||d||²，再装配 3N×3N Hessian。对 Hessian 求特征值，去除接近零的刚体模态，对正特征值 λ 取 sqrt(λ) 作为相对频率尺度。")
-    add_para(doc, "为避免大蛋白造成内存和时间爆炸，最多抽取约 220 个残基；平台记录 sample_stride、sampled_residues 和 contacts。最低最多 24 个非零模式按对数比例映射到 55–1760 Hz，并以低音弦乐/圆号式频谱作为安静背景。")
+    add_para(doc, "为避免大蛋白造成内存和时间爆炸，最多抽取约 220 个残基；平台记录 sample_stride、sampled_residues 和 contacts。非零模式按对数比例映射到 55–1760 Hz，试听只取前三个最低非刚体模态形成缓慢相位/频率微调的低弦与圆号式持续背景，不占用 V1 主旋律。")
     add_callout(doc, "不能过度解读", "单位弹簧模型没有真实力常数、原子质量、溶剂和温度标定；映射后的 Hz 只保持模式间相对对数比例，不是蛋白质绝对振动频率。", fill=PALE_RED, color="8A1C1C")
 
     doc.add_heading("7. 多组学、QC、质谱与统计景观声学化", level=1)
@@ -489,12 +497,21 @@ def build():
     doc.add_heading("8. 音乐映射与古典配器", level=1)
     doc.add_heading("8.1 三种音高策略", level=2)
     add_table(doc, ["模式", "音级来源", "生物特征仍控制"], [
-        ("文献氨基酸映射", "pitch_mapping.csv；保留 Spinning Melodies 已知映射", "电荷音区、时值、力度、配器、声像"),
-        ("生物物理映射", "归一化值进入五声/多利亚/小调/半音阶", "结构、QC、接触度与空间位置"),
-        ("可逆十二音列编解码", "每个序列块经进制转换与康托逆排名得到独立音列", "音区、节奏、力度、配器、声像"),
+        ("生物物理调式映射（推荐）", "身份/归一化特征进入所选调式；派生声部遵循相同调式环境", "结构、SASA、B-factor、QC、接触度与空间"),
+        ("文献氨基酸映射（复现）", "pitch_mapping.csv；保留 Spinning Melodies 已知映射", "电荷音区、连续奏法、CC、配器与声像"),
+        ("可逆十二音列载体（实验）", "每个序列块经进制转换与康托逆排名得到独立全排列", "音区、节奏、CC、配器、声像；不作为默认创作"),
     ], [2200, 3680, 3480])
+    add_para(doc, "推荐模式和文献模式不声称“裸音高可逆”。平台把规范化序列、类型、长度和 SHA-256 校验嵌入 GVR JSON、MusicXML 与 MIDI，完整产物可以恢复符号串；宿主软件删除元数据后，这一保证失效。实验性十二音列才额外让 V1 音级本身承担分块编码。")
     add_para(doc, "文献表未覆盖 C、I、N、W，因为原始丝蛋白构建体未使用全部 20 种氨基酸。本平台以 extended_inference 明确标记扩展值，避免把软件推断误称为文献事实。")
-    doc.add_heading("8.2 六声部古典编配", level=2)
+    doc.add_heading("8.2 调式与音阶选择", level=2)
+    add_table(doc, ["类别", "可选项", "适合的音乐倾向"], [
+        ("教会调式", "伊奥尼亚、多利亚、弗里几亚、利底亚、混合利底亚、爱奥尼亚/自然小调、洛克里亚", "从稳定明亮到张力/阴影的七声音阶环境"),
+        ("大小调扩展", "自然小调、和声小调、旋律小调", "功能和声、增二度或爵士化上行色彩"),
+        ("稀疏音阶", "大调五声、小调五声、布鲁斯", "减少碰撞、适合入门与短序列"),
+        ("对称音阶", "全音、八音全-半、八音半-全、半音", "漂浮、减和声或高密度张力"),
+    ], [1800, 4300, 3260], size=8.8)
+    add_para(doc, "调式影响推荐模式的音级集合以及低音/和声派生。实验性十二音列的 V1 载体不受调式量化，但圆号、中提琴和大提琴仍可使用所选调式组织艺术层。")
+    doc.add_heading("8.3 六声部古典编配", level=2)
     add_table(doc, ["声部", "固定乐器", "音乐功能", "生物来源"], [
         ("V1_melody", "长笛/双簧管/单簧管/竖琴等", "前景生物主旋律", "每个被抽样的原始序列或数据点"),
         ("V2_counterpoint", "小提琴", "延迟轮唱与反向音区对位", "主旋律事件的可追溯派生"),
@@ -504,7 +521,7 @@ def build():
         ("V6_harp_accents", "管弦竖琴", "结构边界、接触峰、显著性重音", "高接触、高值或短语起点"),
     ], [1900, 2200, 3000, 2260], size=8.9)
     add_para(doc, "“古典编配层数”不是音量旋钮，而是结构开关：1 只保留主旋律，2 加入小提琴，3 加大提琴，4 加圆号，5 加中提琴，6 加竖琴。这样既满足感知节制，也允许用户逐层听清每类映射。不同声部可跨声部同时发声，但同一声部内部仍按时间线排列。")
-    doc.add_heading("8.3 九种古典乐器与持久通道", level=2)
+    doc.add_heading("8.4 九种古典乐器与持久通道", level=2)
     add_table(doc, ["内部名", "中文", "GM 程序（1-based）", "当前用途"], [
         ("flute", "长笛", "74", "DNA 主旋律"), ("clarinet", "单簧管", "72", "RNA/表达矩阵主旋律"),
         ("oboe", "双簧管", "69", "蛋白质主旋律"), ("bassoon", "大管", "71", "扩展低音配器接口"),
@@ -513,26 +530,39 @@ def build():
         ("orchestral_harp", "竖琴", "47", "质谱/代谢主旋律与结构重音"),
     ], [2100, 1450, 2050, 3760], size=9.1)
     add_para(doc, "每个 MusicXML Part 和 MIDI Track 只在开头设置一次持续乐器，不再在单通道上每个音符切换 Program Change。这是从旧版“单线换音色”到真实多声部总谱的关键改变。")
-    doc.add_heading("8.4 对位、低音、和声与结构重音算法", level=2)
+    doc.add_heading("8.5 蛋白质连续表现层与 MIDI CC", level=2)
+    add_table(doc, ["结构/理化量", "连续音乐参数", "实现与边界"], [
+        ("二级结构 + φ/ψ 变化", "duration、gate_ratio、staccato/tenuto", "圆周角差；原子不足时退回 HELIX/SHEET 基线"),
+        ("侧链质量", "CC74 brightness + WAV 逐音符低通", "35–127 反向归一化；不是更换电子合成器"),
+        ("rSASA × 亲水性", "CC91/93、reverb_mix、chorus、spatial_width", "绝对 SASA 先按残基最大面积归一化"),
+        ("中心化 CA-x", "CC10 左右声像", "立体声空间化，不冒充 HRTF 三维环绕"),
+        ("CA B-factor", "CC1 调制/揉弦深度", "预测结构可能存 pLDDT，须核对来源"),
+        ("前三个非刚体 NMA 模态", "低弦/圆号持续背景微调", "只保持相对频率关系，不是绝对振动测量"),
+    ], [2400, 3300, 3660], size=8.6)
+    add_para(doc, "同一来源残基产生的派生声部继承 CC74/CC91/CC93/CC1，并按自身舞台位置重写 CC10。V1 的音高来源证书保持不变；表现层只改变奏法、响度、频谱、混响、合唱与空间。专业管弦乐音源可能忽略 GM CC74/91/93，届时应在 DAW 中绑定对应参数，或使用 MusicXML 奏法标记。")
+    doc.add_heading("8.6 对位、低音、和声与结构重音算法", level=2)
     add_bullet(doc, "对位：按 2–3 个主旋律事件抽取锚点，延迟 0.5 拍；普通调式采用三度及反向音区，十二音列采用 I 形式的对应位置。")
     add_bullet(doc, "低音：按约两小节形成窗口，主音/属音在大提琴音域持续到下一窗口。")
     add_bullet(doc, "圆号与中提琴：按更长区块形成持续和声场，分别承担根音/属功能与三度色彩。和声是艺术组织层，不应解释为分子稳定性。")
     add_bullet(doc, "竖琴：在二级结构变化、接触度峰、数值显著峰或短语起点演奏三音短琶音，作为可听的结构标记。")
-    doc.add_heading("8.5 网页音色模型与厅堂反射", level=2)
+    doc.add_heading("8.7 网页音色模型与厅堂反射", level=2)
     add_para(doc, "WAV 试听不依赖大型 SoundFont，而是用古典乐器典型谐波结构作轻量加法合成：长笛以基频为主，单簧管突出奇次谐波，双簧管具有较丰富高次谐波，弦乐采用递减谐波并加入轻微揉弦，圆号与大管突出低次谐波，竖琴使用指数衰减拨弦包络。六声部使用不同增益，混合后加入 37 ms 与 71 ms 的克制早期反射。")
     add_para(doc, "这能提供古典配器方向的本地预览，但不等于真实乐团采样。多轨 MIDI 可驱动 Muse Sounds、Kontakt、BBC Symphony Orchestra 等音源；多谱表 MusicXML 可在 MuseScore/Sibelius 中排总谱、分谱和进一步人工配器。")
-    doc.add_heading("8.6 力度、声像与呼吸", level=2)
+    doc.add_heading("8.8 力度、声像与呼吸", level=2)
     add_para(doc, "力度限制在 MIDI 1–127 的安全范围内，各声部再按前景、对位、低音、和声和重音设置独立混合增益。默认每 24 个主旋律事件插入 0.25 拍呼吸空隙。大提琴和圆号偏左，中提琴偏右，小提琴偏右，竖琴接近中央；有 PDB 坐标时，x 轴声像以加权偏移叠加到舞台位置。")
 
-    doc.add_heading("9. 十二音列与 GVR 原理", level=1)
-    doc.add_heading("9.1 从生物序列得到十二音列", level=2)
+    doc.add_heading("9. 信息保真、可选十二音列与 GVR 原理", level=1)
+    doc.add_heading("9.1 默认双通道信息保真", level=2)
+    add_para(doc, "平台区分可听音乐层与符号档案层。推荐调式/文献复现模式允许为了音乐性对音高进行调式组织，但同时把 canonical_sequence、data_type、length、mapping_mode 与 sequence_sha256 写入 JSON、MusicXML miscellaneous-field 和 MIDI text meta event。恢复器先验证长度和 SHA-256，再输出规范化大写符号串。")
+    add_para(doc, "这种方式保证完整平台产物的信息保真，不等于从 WAV 或裸音高逆向恢复。修改旋律不会自动产生治疗性序列；若要把音乐编辑解释为序列设计，必须另建明确的编辑编码规则、生物约束和实验验证。")
+    doc.add_heading("9.2 可选十二音列实验载体", level=2)
     add_para(doc, "载体层不使用哈希映射。DNA 使用 A=0、C=1、G=2、T=3，RNA 把 U 置于第 4 位；每 12 个碱基构成一个四进制整数 N。蛋白质使用字母表 ACDEFGHIKLMNPQRSTVWY* 的 21 进制编号，每 6 个残基构成一个整数 N。4^12 = 16,777,216 < 12!，21^6 = 85,766,121 < 12!，因此每个合法块都能无碰撞地进入十二音列排列空间。")
     add_para(doc, "平台对 N 执行零起点词典序康托逆排名（Lehmer/factoradic unranking），得到 0–11 的唯一全排列。尾块不足时用 A 补齐，并保存 original_length、pad_length、字母表、块长、载体声部、行形式与版本。SHA-256 只作为解码后的完整性校验和，不承担映射。")
     add_para(doc, "P/I/R/RI 只改变呈现，不丢弃绝对音级：P 保持原排列，I 对每个音级取 -x mod 12，R 反转，RI 同时倒影和逆行。解码器先用记录的形式撤销变形，再计算康托排名。不能把第一音归零，否则会丢失载体转调信息。")
     add_code(doc, "P  = (p0, p1, ... p11)\nI  = (-p0, -p1, ... -p11) mod 12\nR  = reverse(P)\nRI = reverse(I)")
-    doc.add_heading("9.2 事件证书", level=2)
-    add_para(doc, "每个 MusicEvent 至少包含 event_id、voice_id、role、parent_event_id、source_index、source_label、symbol、onset、duration、midi、velocity、pan、timbre、expected_pc、mapping_rule、row_position、row_form、codec_block、is_codec_carrier、status 和 feature 字典。只有 V1_melody 且 is_codec_carrier=true 的事件进入解码；五个派生声部只负责艺术表现。")
-    doc.add_heading("9.3 硬约束", level=2)
+    doc.add_heading("9.3 事件证书", level=2)
+    add_para(doc, "每个 MusicEvent 至少包含来源、音高、时值、gate_ratio、articulation、CC1/10/74/91/93、brightness、reverb_mix、spatial_width、expected_pc、mapping_rule 和 feature 字典。实验性十二音列另有 row_position、row_form、codec_block 与 is_codec_carrier；普通模式这些字段为空。")
+    doc.add_heading("9.4 硬约束", level=2)
     add_table(doc, ["规则", "验证内容", "失败后处理"], [
         ("H_mapping", "实际音级 = 映射证书 expected_pc", "保持音级投影到合法 MIDI"),
         ("H_register", "每个声部在自己的可演奏音域与全局 36–96 内", "换八度，不改变音级"),
@@ -545,7 +575,7 @@ def build():
         ("H_event_id", "所有事件编号全局唯一", "不可安全修复则拒绝发布"),
         ("H_parent", "每个派生声部事件引用有效主事件", "不可安全修复则拒绝发布"),
     ], [1800, 4660, 2900], size=9.2)
-    doc.add_heading("9.4 Generate–Verify–Repair–Release", level=2)
+    doc.add_heading("9.5 Generate–Verify–Repair–Release", level=2)
     reset_numbers()
     add_number(doc, "Generate：规则生成器依据数据和设置提出事件。MVP 不需要在线 LLM。")
     add_number(doc, "Verify：对实际事件执行确定性硬规则，而不是读取生成器的自我声明。")
@@ -553,7 +583,7 @@ def build():
     add_number(doc, "Re-verify：对修复后的最终事件重新扫描。")
     add_number(doc, "Release：有任何剩余硬违规时不发布 WAV/MIDI/MusicXML。")
     add_callout(doc, "与论文一致的谨慎表述", "事件级约束通过不等于作品在所有音乐学层面都完全合法。平台报告的是已实现规则的通过状态，并保留可核查轨迹。", fill=PALE_TEAL)
-    add_callout(doc, "严格模式", "未经修改且保留元数据的 JSON、MusicXML、MIDI 才承诺符号级精确往返。非法编辑默认报错；任何自动修复都会产生新候选序列，不能再称为恢复原始序列。", fill=PALE_GOLD)
+    add_callout(doc, "两类恢复保证", "推荐/文献模式恢复嵌入式带校验符号载荷；实验性十二音列还验证实际 V1 音级块。两者都要求 JSON、MusicXML 或 MIDI 中的 BioSound 元数据未被删除，WAV 不在保证范围内。", fill=PALE_GOLD)
 
     doc.add_heading("10. 溯源、可复现性与科研使用", level=1)
     doc.add_heading("10.1 最小复现包", level=2)
@@ -564,22 +594,22 @@ def build():
     add_bullet(doc, "先比较 Trace 中的特征和事件统计，再讨论主观听感。")
     add_bullet(doc, "盲听时不要告诉听者样本标签，并收集可重复的评分维度。")
     doc.add_heading("10.3 可发表的准确措辞", level=2)
-    add_para(doc, "推荐：本工具实施可配置、可追溯的规则声学化；对未修改且保留编解码元数据的符号载体，DNA/RNA 或蛋白质字符串可精确往返，并由确定性验证器检查事件级映射一致性。")
+    add_para(doc, "推荐：本工具实施可配置、可追溯的规则声学化；完整 JSON、MusicXML 或 MIDI 保存带校验的规范化符号载荷，实验性十二音列模式另提供音高载体级验证。")
     add_para(doc, "不推荐：本工具无损还原蛋白质真实声音，或声音直接证明某种结构/疾病状态。")
 
     doc.add_heading("11. 多类输入的完整示例工作流", level=1)
     doc.add_heading("11.1 直接粘贴蛋白质", level=2)
     reset_numbers()
-    for step in ["选择“粘贴序列”，输入名称。", "粘贴一字母蛋白质序列并手动选择“蛋白质”。", "音高策略选“文献氨基酸映射”，速度 96，拍号 4/4，编配层数 6，对位独立度 0.70。", "生成后先在“当前编制”确认 6 个独立声部，再在 Trace 核对 C/I/N/W 的扩展映射。", "下载多谱表 MusicXML、多轨 MIDI 和 Trace CSV，再用 MuseScore 生成 PDF。"]:
+    for step in ["选择“粘贴序列”，输入名称。", "粘贴一字母蛋白质序列并手动选择“蛋白质”。", "音高策略选“生物物理调式映射（推荐）”，调式先选多利亚，速度 96，编配层数 6。", "生成后确认 6 个独立声部，在 Trace 核对来源、gate_ratio、CC74、CC91 与 CC93。", "下载 MusicXML、MIDI、Trace CSV 与 GVR JSON；需要文献对照时再切换“文献氨基酸映射（复现）”。"]:
         add_number(doc, step)
     doc.add_heading("11.2 DNA/RNA", level=2)
-    add_para(doc, "使用生物物理映射和多利亚/五声音阶。观察 GC 碱基是否进入更高音区；比较样本时固定根音、速度与事件上限。若序列只含 A/C/G/T 但实际上是蛋白质，必须手动指定类型。")
+    add_para(doc, "使用“生物物理调式映射（推荐）”，从多利亚、五声或大调开始。观察 GC 碱基是否进入更高音区；比较样本时固定调式、速度与事件上限。若序列只含 A/C/G/T 但实际上是蛋白质，必须手动指定类型。")
     doc.add_heading("11.3 PDB", level=2)
-    add_para(doc, "上传 PDB，选择链，启用 NMA。戴耳机观察声像是否随 x 坐标移动；在科学边界标签查看 sample_stride、contacts、相对本征值与映射频率。正式报告中注明 8 Å 接触阈值和 12 Å NMA 弹簧截断。")
+    add_para(doc, "上传 PDB，选择链，启用 NMA。优先使用含完整重原子与 N–CA–C 主链的 PDB；在网页核对 sasa_source、dihedral_source 和 b_factor_source。戴耳机观察 CC10 声像与 CC91 空间宽度；在科学边界查看前三个低模态。正式报告中注明 48 点/1.4 Å SASA 近似、8 Å 接触阈值和 12 Å NMA 截断。")
     doc.add_heading("11.4 单细胞表达 CSV", level=2)
     add_para(doc, "确保行为细胞、列为基因，线粒体基因以 MT- 或 MT_ 开头。生成后核对 mean_mitochondrial_fraction 和 low-pass cutoff。听到沉闷仅表示当前 QC 规则被触发，必须回到线粒体比例、小提琴图和过滤阈值复核。")
     doc.add_heading("11.5 十二音列", level=2)
-    add_para(doc, "选择“可逆十二音列编解码”和 P/I/R/RI。生成后核对 H_row、H_permutation、H_codec_domain 与载体块数，并同时保存 GVR JSON。把 JSON、MusicXML 或 MIDI 上传到页面解码面板，应得到与输入完全一致的字符串。蛋白质模式恢复的是氨基酸序列，不能凭蛋白质反推出原始同义密码子。")
+    add_para(doc, "十二音列是实验选项，不是默认作曲路线。确有音高载体级解码需求时，选择“可逆十二音列载体（实验）”和 P/I/R/RI，核对 H_row、H_permutation、H_codec_domain；一般作品优先使用生物物理调式映射，并依靠完整产物中的符号载荷保存信息。")
     doc.add_heading("11.6 表观、代谢或关联 CSV", level=2)
     add_para(doc, "先用清晰列名表达数据语义：表观信号使用 methyl/CpG/H3K/ChIP 类列名；代谢表至少包含 metabolite/compound 与 abundance；关联数据至少包含 pvalue 与 chromosome/position。生成后先核对 record.data_type 和输入元数据，再讨论声学结果。若自动分类错误，应整理列名或在导入前转换数据，而不是依据听感猜测模态。")
 
@@ -606,26 +636,27 @@ def build():
         ("app.py", "Streamlit 中文界面、文本输入、试听、下载和科学说明"),
         ("models.py", "BioRecord、MusicEvent、Violation、GVRReport 数据结构"),
         ("parsers.py", "FASTA、PDB、CSV 解析与格式识别"),
-        ("features.py", "理化特征、PDB 声像/接触度、粗粒化 NMA"),
+        ("features.py", "理化特征、相对 SASA、φ/ψ刚度、B-factor、PDB 声像/接触度、NMA"),
         ("codec.py", "DNA/RNA 四进制、蛋白质 21 进制、康托排名/逆排名与产物解码"),
-        ("mapping.py", "模态特异音高、六声部派生、音域、十二音列与事件生成"),
+        ("mapping.py", "三种音高策略、扩展调式、连续 CC、六声部派生与可选十二音列"),
         ("gvr.py", "按声部硬约束验证、局部修复、软齐奏提示和最终门控"),
         ("synth.py", "古典乐器频谱近似、多声部混合、舞台声像、QC 滤波、WAV"),
         ("exporters.py", "多轨 MIDI、多 Part MusicXML、MuseScore PDF、GVR JSON"),
         ("pipeline.py", "稳定的端到端 Python API"),
         ("config/pitch_mapping.csv", "20 种氨基酸音高及事实/推断状态"),
-        ("tests/test_pipeline.py", "FASTA、PDB、CSV、十二音列回归测试"),
+        ("tests/test_pipeline.py", "FASTA、PDB 连续表现、扩展调式、符号载荷、CSV 与十二音列回归测试"),
         (".streamlit/config.toml", "高对比主题、headless 与关闭统计提示"),
     ], [2800, 6560], size=9.2)
     doc.add_heading("13.1 Python API", level=2)
-    add_code(doc, "from biomusic.pipeline import SonificationSettings, run_pipeline\nfrom biomusic.codec import decode_artifact\n\nsettings = SonificationSettings(\n    pitch_mode='可逆十二音列编解码', row_form='RI',\n    texture_density=6, counterpoint_strength=0.70\n)\nresult = run_pipeline('sample.fasta', fasta_bytes, settings)\nsequence, metadata, rows = decode_artifact('sample.mid', result.midi)\nassert sequence == ''.join(result.record.symbols)")
+    add_code(doc, "from biomusic.pipeline import SonificationSettings, run_pipeline\nfrom biomusic.codec import decode_artifact\n\nsettings = SonificationSettings(\n    pitch_mode='生物物理调式映射（推荐）', scale_name='多利亚调式',\n    texture_density=6, counterpoint_strength=0.70\n)\nresult = run_pipeline('sample.pdb', pdb_bytes, settings)\nsequence, metadata, rows = decode_artifact('sample.mid', result.midi)\nassert sequence == ''.join(result.record.symbols)\nassert rows == []  # 推荐模式从带校验符号载荷恢复")
 
     doc.add_heading("14. 测试、验收与后续扩展", level=1)
     doc.add_heading("14.1 当前自动化测试", level=2)
     add_bullet(doc, "FASTA：完整生成、WAV RIFF、多轨 MIDI、多 Part MusicXML 与 GVR JSON。")
-    add_bullet(doc, "十二音列：DNA/蛋白质、P/I/R/RI、康托排名边界、H_row/H_permutation/H_codec_domain。")
-    add_bullet(doc, "逆向解码：GVR JSON、MusicXML、MIDI 均恢复原字符串；非法域严格拒绝。")
-    add_bullet(doc, "PDB：空间声像、接触度与 NMA 可用性。")
+    add_bullet(doc, "音高策略：推荐调式为默认，文献复现与实验性十二音列可切换；利底亚等扩展调式可用。")
+    add_bullet(doc, "信息恢复：推荐模式的 GVR JSON、MusicXML、MIDI 均从带校验载荷恢复原字符串。")
+    add_bullet(doc, "十二音列实验：DNA/蛋白质、P/I/R/RI、康托排名边界与严格域拒绝。")
+    add_bullet(doc, "PDB：相对 SASA/代理来源、刚度、B-factor、CC1/10/74/91、空间声像与 NMA。")
     add_bullet(doc, "CSV：线粒体比例、QC 低通和转录组类型。")
     add_bullet(doc, "配器：所有事件必须属于九种古典乐器白名单。")
     add_bullet(doc, "多声部：至少 5 个 Part、至少 6 个 MIDI Track（含速度轨）、跨声部存在同时发声、同声部无意外重叠。")
@@ -661,7 +692,7 @@ def build():
         ("DNA/RNA", "碱基、密码子、阅读框、起止密码子、重复主题", "序列→时间；碱基→音级；GC/嘌呤→音区与力度；六声部派生", "三阅读框独立声部、起止门控、k-mer 主题检测"),
         ("表观组", "坐标、峰高/宽、标记类别、比较状态", "列名识别；坐标→时间；信号→显著性与结构层", "多组蛋白标记独立声部、峰宽、状态比较"),
         ("转录组", "时间点、簇、通路、细胞状态、伪时间", "表达矩阵 QC；HVG/线粒体比例；多声部织体代理", "正规归一化、聚类、PCA、GO 背景层、伪时间分支"),
-        ("蛋白/PDB", "序列、理化、二级结构、三维接触、振动", "氨基酸音高；疏水/电荷；HELIX/SHEET 时值；接触度；声像；粗粒化 NMA", "实验 NMR、真实力常数、构象系综、结合位点/修饰"),
+        ("蛋白/PDB", "序列、理化、二级结构、SASA、二面角、三维接触、振动", "调式/文献音高；疏水/电荷；rSASA；φ/ψ刚度；B-factor；CC；声像；前三低模态", "真正 DSSP 氢键分配、实验 NMR、绝对力常数、构象系综、结合位点/修饰"),
         ("质谱/代谢", "峰、丰度、置信度、通量、通路、网络拓扑", "m/z、强度、丰度、置信度入口；竖琴与区块编配", "同位素通量、反应方向、通路图、中心性/模块"),
         ("GWAS/EWAS", "坐标、显著性、效应、LD、可信集、多基因结构", "坐标→时间；p 值→显著性；效应→音区；显著峰重音", "LD 区块和声场、可信集、跨性状/组织富集"),
     ], [1350, 2700, 3030, 2280], size=8.3)
@@ -669,7 +700,7 @@ def build():
     add_para(doc, "综述反复指出，高维数据不应被压成孤立单音，但把全部变量同时映射又会形成不可理解的噪声。当前版本采取折中：原始数据点只生成一条信息最密集的前景主旋律，其余乐器从主事件、分组窗口、结构边界与显著峰派生。这样既产生真正复调，又能让每个派生音回到唯一的 parent_event_id。")
     add_callout(doc, "艺术层与分析层必须分开", "三度和声、主属低音、轮唱与厅堂反射用于可听性和音乐组织；它们不是由分子力学唯一决定的生物事实。Trace 中的 mapping_rule 会明确标注“派生”“区块”或“结构重音”，避免把配器选择误当成实验测量。", fill=PALE_GOLD)
     doc.add_heading("16.4 NMA、十二音列与 AI 的准确定位", level=2)
-    add_para(doc, "PDB 粗粒化 NMA 提供相对模式背景，十二音列 GVR 提供可审计的音级硬约束，两者解决不同问题。前者近似结构动力学，后者约束符号作曲。当前版本不调用在线 LLM；未来可以让本地模型提出节奏、织体或主题发展，但 expected_pc、source_index、voice_id、parent_event_id 和发布门控仍应由确定性代码掌握。")
+    add_para(doc, "PDB 粗粒化 NMA 提供相对低频背景；十二音列仅是可选编码实验，不代表平台认为十二音技法最悦耳或最适合所有数据。默认调式路线由综述的层级对应原则主导。当前版本不调用在线 LLM；未来模型只能提出节奏、织体或主题发展，source_index、符号载荷、expected_pc 与发布门控仍由确定性代码掌握。")
     doc.add_heading("16.5 综述来源与引用方式", level=2)
     add_para(doc, "本章的方法框架直接依据本地综述《Transform from genes to music》，特别是 genomic、epigenomic、transcriptomic、proteomic、metabolomic、association-study 与 cross-modality design principles 各节。正式论文中应引用综述所列的原始文献，而不是只引用本软件手册。")
 
@@ -698,18 +729,21 @@ def build():
         ("symbol", "氨基酸、碱基、cell 或 peak"), ("onset_quarter/duration_quarter", "以四分音符为单位的起拍与时值"),
         ("midi/pitch_class", "实际音高与实际音级"), ("expected_pc", "生物映射或十二音列证书要求的音级"),
         ("velocity/pan", "力度和左右声像"), ("timbre", "九种古典配器内部名称"),
+        ("gate_ratio/articulation", "实际发声门限比例与连奏/断奏记号"), ("cc1/10/74/91/93", "调制、声像、亮度、混响、合唱 MIDI 控制"),
+        ("brightness/reverb_mix/spatial_width", "网页合成使用的连续频谱和空间参数"),
         ("row_position/row_form", "十二音列位置与呈现形式；非序列模式为空"), ("codec_block/is_codec_carrier", "载体块号与是否参与解码"),
         ("status", "retained 或 repaired"),
-        ("mapping_rule", "该事件的音高、派生或结构规则摘要"), ("hydropathy/charge/contact/value/uncertainty", "进入音乐映射的主要数值特征"),
+        ("mapping_rule", "该事件的音高、派生或结构规则摘要"), ("hydropathy/charge/contact/value/uncertainty", "进入音乐映射的基础数值特征"),
+        ("relative_sasa/surface_wetness", "溶剂暴露与暴露亲水性"), ("backbone_rigidity/b_factor_normalized/sidechain_mass_normalized", "连续结构与频谱控制特征"),
     ], [3300, 6060], size=9.2)
 
     doc.add_heading("附录 C：GVR JSON 结构", level=1)
-    add_code(doc, "{\n  'metadata': {'record_name': '...', 'audio': {...}, 'nma': {...}},\n  'gvr': {\n    'passed': true,\n    'checks': {'H_row': true, 'H_permutation': true, 'H_codec_domain': true},\n    'tone_rows': [[0, ...], ...],\n    'codec': {\n      'codec_version': 'biosound-cantor-v1', 'data_type': 'protein',\n      'alphabet': 'ACDEFGHIKLMNPQRSTVWY*', 'block_size': 6,\n      'row_form': 'RI', 'original_length': 83, 'pad_length': 1\n    }\n  }\n}")
+    add_code(doc, "{\n  'metadata': {\n    'record_name': '...', 'audio': {...}, 'nma': {...},\n    'sequence_payload': {\n      'payload_version': 'biosound-sequence-v1',\n      'data_type': 'protein', 'canonical_sequence': '...',\n      'length': 83, 'sequence_sha256': '...',\n      'recovery_scope': 'embedded metadata; not pitch-only inverse design'\n    }\n  },\n  'gvr': {\n    'passed': true, 'checks': {'H_mapping': true, ...},\n    'tone_rows': null, 'codec': null\n  }\n}\n// 实验性十二音列模式才填入 tone_rows 与 codec。")
 
     doc.add_heading("附录 D：科研发布前检查清单", level=1)
     for item in [
         "原始输入文件与校验值已归档。", "软件版本、配置文件与随机种子已记录。",
-        "抽样步长、速度、拍号、音域、调式与音高模式已报告。", "PDB 接触/NMA 参数和科学边界已写入方法。",
+        "抽样步长、速度、拍号、音域、调式与音高模式已报告。", "PDB SASA 来源、二面角降级、B-factor 含义、接触/NMA 参数已写入方法。",
         "CSV 的矩阵方向、MT 基因命名和 HVG 方法已经独立复核。", "Trace CSV 和 GVR JSON 与音频/谱面一起发布。",
         "没有把网页预览音色描述成真实乐团采样。", "没有把声学化结果描述成诊断或结构证明。",
         "盲听评价报告了样本量、问题、随机化和评分标准。", "最终 MusicXML 已在 MuseScore 中人工检查拍号、音符与配器文字。",
@@ -726,15 +760,16 @@ def build():
         ("Row-preserving Repair", "按声部换八度保音级、修时值、顺延内部重叠", "没有 LLM patch/replan"),
         ("Final release gate", "violations_after 为空才发布", "失败会明确报错"),
         ("Trace", "每个音符保存来源、证书和状态", "计划层历史仍有限"),
-        ("十二音列 P/I/R/RI", "分块进制数 + 康托编解码 + 可逆呈现形式", "V1 承载数据；生物特征控制其他维度"),
+        ("综述的层级声学化", "默认调式 + 连续结构CC + 六声部古典配器", "完整产物以符号载荷保真；裸音高不宣称可逆"),
+        ("十二音列 P/I/R/RI", "可选分块康托编解码", "实验功能；不作为默认审美路线"),
     ], [2600, 3300, 3460], size=9.0)
 
     # Keep core properties explicit for deterministic updates in Word.
     props = doc.core_properties
-    props.title = "BioSound GVR 多声部管弦乐版平台功能与原理说明"
-    props.subject = "综述驱动的模态特异生物数据声学化、六声部古典配器与 GVR"
+    props.title = "BioSound GVR 生物物理表现层增强版平台功能与原理说明"
+    props.subject = "连续蛋白质结构特征、扩展调式、六声部古典配器、信息保真与 GVR"
     props.author = "BioSound GVR Project"
-    props.keywords = "sonification, GVR, multi-omics, FASTA, PDB, NMA, multi-track MIDI, multi-part MusicXML, classical orchestration"
+    props.keywords = "sonification, GVR, protein, SASA, dihedral, B-factor, NMA, MIDI CC, MusicXML, classical orchestration"
     doc.save(OUTPUT)
     print(OUTPUT)
 

@@ -12,10 +12,27 @@ from .models import BioRecord, MusicEvent
 
 SCALES = {
     "五声音阶": [0, 2, 4, 7, 9],
+    "大调（伊奥尼亚）": [0, 2, 4, 5, 7, 9, 11],
     "多利亚调式": [0, 2, 3, 5, 7, 9, 10],
+    "弗里几亚调式": [0, 1, 3, 5, 7, 8, 10],
+    "利底亚调式": [0, 2, 4, 6, 7, 9, 11],
+    "混合利底亚调式": [0, 2, 4, 5, 7, 9, 10],
     "自然小调": [0, 2, 3, 5, 7, 8, 10],
+    "洛克里亚调式": [0, 1, 3, 5, 6, 8, 10],
+    "和声小调": [0, 2, 3, 5, 7, 8, 11],
+    "旋律小调": [0, 2, 3, 5, 7, 9, 11],
+    "小调五声音阶": [0, 3, 5, 7, 10],
+    "布鲁斯音阶": [0, 3, 5, 6, 7, 10],
+    "全音音阶": [0, 2, 4, 6, 8, 10],
+    "八音音阶（全-半）": [0, 2, 3, 5, 6, 8, 9, 11],
+    "八音音阶（半-全）": [0, 1, 3, 4, 6, 7, 9, 10],
     "半音阶": list(range(12)),
 }
+
+
+def _scale_interval(scale_name: str, preferred: int) -> int:
+    scale = SCALES.get(scale_name, SCALES["多利亚调式"])
+    return min(scale, key=lambda value: (abs(value - preferred), value))
 
 CLASSICAL_TIMBRES = {
     "flute", "oboe", "clarinet", "bassoon", "french_horn",
@@ -43,7 +60,7 @@ VOICE_RANGES = {
 
 @dataclass
 class MappingSettings:
-    pitch_mode: str = "文献氨基酸映射"
+    pitch_mode: str = "生物物理调式映射（推荐）"
     scale_name: str = "多利亚调式"
     root_midi: int = 60
     tempo: int = 96
@@ -98,6 +115,39 @@ def _duration(record: BioRecord, index: int) -> float:
     return 0.5
 
 
+def _protein_expression(record: BioRecord, index: int, pan: float) -> dict:
+    if record.data_type != "protein":
+        return {
+            "gate_ratio": 0.90, "articulation": "normal", "brightness": 0.72,
+            "reverb_mix": 0.15, "spatial_width": 0.30,
+            "cc_controls": {10: int(np.clip(round((pan + 1.0) * 63.5), 0, 127))},
+        }
+    secondary = record.categories.get("secondary_structure", [])
+    state = secondary[index] if index < len(secondary) else "coil"
+    rigidity = _feature(record, "backbone_rigidity", index, {"helix": 0.95, "sheet": 0.72}.get(state, 0.38))
+    state_gate = {"helix": 0.98, "sheet": 0.52, "coil": 0.68}.get(state, 0.68)
+    gate_ratio = float(np.clip(0.65 * state_gate + 0.35 * (0.50 + 0.48 * rigidity), 0.42, 0.99))
+    articulation = "legato" if gate_ratio >= 0.86 else ("staccato" if gate_ratio <= 0.62 else "tenuto")
+    sidechain_mass = _feature(record, "sidechain_mass_normalized", index, _feature(record, "mass_normalized", index, 0.5))
+    brightness = float(np.clip(1.0 - sidechain_mass, 0, 1))
+    relative_sasa = _feature(record, "relative_sasa", index, 0.5)
+    wetness = _feature(record, "surface_wetness", index, relative_sasa * 0.5)
+    b_factor = _feature(record, "b_factor_normalized", index, 0.0)
+    cc74 = int(np.clip(round(35 + 92 * brightness), 0, 127))
+    cc91 = int(np.clip(round(10 + 85 * wetness), 0, 127))
+    cc93 = int(np.clip(round(5 + 75 * relative_sasa), 0, 127))
+    cc10 = int(np.clip(round((pan + 1.0) * 63.5), 0, 127))
+    cc1 = int(np.clip(round(15 + 96 * b_factor), 0, 127))
+    return {
+        "gate_ratio": gate_ratio,
+        "articulation": articulation,
+        "brightness": brightness,
+        "reverb_mix": float(np.clip(cc91 / 127.0 * 0.55, 0, 0.55)),
+        "spatial_width": float(np.clip(0.15 + 0.85 * relative_sasa, 0.15, 1.0)),
+        "cc_controls": {1: cc1, 10: cc10, 74: cc74, 91: cc91, 93: cc93},
+    }
+
+
 def _melody_timbre(record: BioRecord) -> str:
     return {
         "protein": "oboe",
@@ -139,7 +189,7 @@ def _base_events(
             target = settings.root_midi + 12 * (0.5 + 0.8 * charge + 0.4 * (contact - 0.5))
             midi = _voice_midi(pc, target, "V1_melody")
             rule = f"{settings.row_form} 音列[{row_position}]={pc}；生物特征控制音区、时值、力度和空间"
-        elif settings.pitch_mode == "文献氨基酸映射" and record.data_type == "protein":
+        elif settings.pitch_mode in {"文献氨基酸映射", "文献氨基酸映射（复现）"} and record.data_type == "protein":
             raw = pitch_map.get(symbol, settings.root_midi)
             pc = raw % 12
             midi = _voice_midi(pc, raw + 12 * int(round(charge)), "V1_melody")
@@ -167,6 +217,9 @@ def _base_events(
         duration = max(0.25, round(_duration(record, index) * 4) / 4)
         biological_pan = _feature(record, "spatial_pan", index, 0.0)
         pan = float(np.clip(-0.12 + 0.55 * biological_pan, -1, 1))
+        expression = _protein_expression(record, index, pan)
+        if record.data_type == "protein":
+            rule += "; 二级结构/二面角→门限奏法，侧链质量→CC74，相对SASA×亲水性→CC91，B-factor→CC1"
         if record.data_type in {"omics", "transcriptomics"}:
             mito = _feature(record, "mitochondrial_fraction", index, 0.0)
             hvg = _feature(record, "hvg_score", index, 0.5)
@@ -196,9 +249,15 @@ def _base_events(
                 "contact_degree": round(contact, 4),
                 "value": round(value, 4),
                 "uncertainty": round(uncertainty, 4),
+                "relative_sasa": round(_feature(record, "relative_sasa", index, 0.0), 4),
+                "surface_wetness": round(_feature(record, "surface_wetness", index, 0.0), 4),
+                "backbone_rigidity": round(_feature(record, "backbone_rigidity", index, 0.0), 4),
+                "b_factor_normalized": round(_feature(record, "b_factor_normalized", index, 0.0), 4),
+                "sidechain_mass_normalized": round(_feature(record, "sidechain_mass_normalized", index, 0.0), 4),
             },
             row_position=row_position,
             row_form=settings.row_form if tone_row is not None else None,
+            **expression,
         ))
         onset += duration
         if settings.breath_every and (local_id + 1) % settings.breath_every == 0:
@@ -244,10 +303,15 @@ def _codec_events(
             duration = max(0.25, round(_duration(record, feature_index) * duration_scale * 4) / 4)
             biological_pan = _feature(record, "spatial_pan", feature_index, 0.0)
             pan = float(np.clip(-0.12 + 0.55 * biological_pan, -1, 1))
+            expression = _protein_expression(record, feature_index, pan)
+            if record.data_type == "protein":
+                rigidity = _feature(record, "backbone_rigidity", feature_index, 0.38)
+                duration = max(0.25, round((0.40 + 0.45 * rigidity) * 4) / 4)
             velocity = int(np.clip(60 + 28 * abs(charge) + 18 * value - 18 * uncertainty, 34, 118))
             rule = (
                 f"可逆载体块 {block_index + 1}/{len(tone_rows)}，{settings.row_form}[{row_position}]={pc}；"
-                f"音级承载序列，音区/时值/力度/声像由来源位置 {source_label} 的生物特征控制"
+                f"音级承载序列，音区/时值/力度/声像由来源位置 {source_label} 的生物特征控制；"
+                "二级结构/二面角→门限奏法，侧链质量→CC74，相对SASA×亲水性→CC91，B-factor→CC1"
             )
             events.append(MusicEvent(
                 event_id=event_id,
@@ -271,11 +335,17 @@ def _codec_events(
                     "contact_degree": round(contact, 4),
                     "value": round(value, 4),
                     "uncertainty": round(uncertainty, 4),
+                    "relative_sasa": round(_feature(record, "relative_sasa", feature_index, 0.0), 4),
+                    "surface_wetness": round(_feature(record, "surface_wetness", feature_index, 0.0), 4),
+                    "backbone_rigidity": round(_feature(record, "backbone_rigidity", feature_index, 0.0), 4),
+                    "b_factor_normalized": round(_feature(record, "b_factor_normalized", feature_index, 0.0), 4),
+                    "sidechain_mass_normalized": round(_feature(record, "sidechain_mass_normalized", feature_index, 0.0), 4),
                 },
                 row_position=row_position,
                 row_form=settings.row_form,
                 codec_block=block_index,
                 is_codec_carrier=True,
+                **expression,
             ))
             event_id += 1
             onset += duration
@@ -298,6 +368,8 @@ def _derived(
     rule: str,
     row_form: str | None = None,
 ) -> MusicEvent:
+    derived_cc = dict(parent.cc_controls)
+    derived_cc[10] = int(np.clip(round((pan + 1.0) * 63.5), 0, 127))
     return replace(
         parent,
         event_id=-1,
@@ -315,6 +387,7 @@ def _derived(
         row_form=row_form,
         codec_block=None,
         is_codec_carrier=False,
+        cc_controls=derived_cc,
         status="proposed",
     )
 
@@ -366,7 +439,7 @@ def _orchestrate(
     if density >= 3:
         for i, parent in enumerate(anchors):
             end = anchors[i + 1].onset if i + 1 < len(anchors) else total_end
-            pc = (settings.root_midi + (0 if i % 2 == 0 else 7)) % 12
+            pc = (settings.root_midi + (0 if i % 2 == 0 else _scale_interval(settings.scale_name, 7))) % 12
             midi = _voice_midi(pc, 45 + 5 * parent.features.get("value", 0.5), "V3_bass")
             events.append(_derived(
                 parent, voice_id="V3_bass", role="structural_bass", timbre="cello",
@@ -379,7 +452,7 @@ def _orchestrate(
     if density >= 4:
         for i, parent in enumerate(pads):
             end = pads[i + 1].onset if i + 1 < len(pads) else total_end
-            root_pc = (settings.root_midi + (5 if i % 3 == 1 else 0)) % 12
+            root_pc = (settings.root_midi + (_scale_interval(settings.scale_name, 5) if i % 3 == 1 else 0)) % 12
             midi = _voice_midi(root_pc, 55 + 8 * parent.features.get("contact_degree", 0.5), "V4_horn_harmony")
             events.append(_derived(
                 parent, voice_id="V4_horn_harmony", role="structural_harmony", timbre="french_horn",
@@ -390,7 +463,7 @@ def _orchestrate(
     if density >= 5:
         for i, parent in enumerate(pads):
             end = pads[i + 1].onset if i + 1 < len(pads) else total_end
-            third = 3 if settings.scale_name in {"自然小调", "多利亚调式"} else 4
+            third = _scale_interval(settings.scale_name, 4)
             pc = (settings.root_midi + third + (2 if i % 3 == 2 else 0)) % 12
             midi = _voice_midi(pc, 62 + 5 * parent.features.get("hydropathy", 0.5), "V5_viola_harmony")
             events.append(_derived(
@@ -412,7 +485,11 @@ def _orchestrate(
             phrase = settings.breath_every and i % settings.breath_every == 0
             if not (structural_change or salient or phrase) or parent.onset < last_harp_end:
                 continue
-            pcs = [parent.midi % 12, (parent.midi + 4) % 12, (parent.midi + 7) % 12]
+            pcs = [
+                parent.midi % 12,
+                (parent.midi + _scale_interval(settings.scale_name, 4)) % 12,
+                (parent.midi + _scale_interval(settings.scale_name, 7)) % 12,
+            ]
             for j, pc in enumerate(pcs):
                 onset = parent.onset + 0.25 * j
                 midi = _voice_midi(pc, 72 + 5 * j, "V6_harp_accents")
@@ -444,7 +521,9 @@ def generate_events(
 ) -> tuple[list[MusicEvent], list[list[int]] | None, dict | None]:
     if not record.symbols:
         return [], None, None
-    codec_mode = settings.pitch_mode in {"十二音列 GVR", "可逆十二音列编解码"}
+    codec_mode = settings.pitch_mode in {
+        "十二音列 GVR", "可逆十二音列编解码", "可逆十二音列载体（实验）",
+    }
     if codec_mode:
         tone_rows, codec = encode_sequence("".join(record.symbols), record.data_type, settings.row_form)
         melody = _codec_events(record, settings, tone_rows, codec)

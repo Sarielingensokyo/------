@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import io
 from dataclasses import dataclass
 from pathlib import Path
@@ -24,7 +25,7 @@ DEFAULT_PITCH_MAP = PACKAGE_ROOT / "config" / "pitch_mapping.csv"
 class SonificationSettings:
     forced_type: str = "auto"
     record_index: int = 0
-    pitch_mode: str = "文献氨基酸映射"
+    pitch_mode: str = "生物物理调式映射（推荐）"
     scale_name: str = "多利亚调式"
     root_midi: int = 60
     tempo: int = 96
@@ -66,7 +67,10 @@ def _trace_csv(events: list[MusicEvent]) -> bytes:
         "duration_quarter", "midi", "pitch_class", "velocity", "pan", "timbre",
         "expected_pc", "row_position", "row_form", "status", "mapping_rule",
         "codec_block", "is_codec_carrier",
+        "gate_ratio", "articulation", "cc1_modulation", "cc10_pan", "cc74_brightness", "cc91_reverb", "cc93_chorus",
+        "brightness", "reverb_mix", "spatial_width",
         "hydropathy", "charge", "contact_degree", "value", "uncertainty",
+        "relative_sasa", "surface_wetness", "backbone_rigidity", "b_factor_normalized", "sidechain_mass_normalized",
     ]
     writer = csv.DictWriter(stream, fieldnames=fields)
     writer.writeheader()
@@ -92,6 +96,16 @@ def _trace_csv(events: list[MusicEvent]) -> bytes:
             "row_form": event.row_form or "",
             "codec_block": event.codec_block if event.codec_block is not None else "",
             "is_codec_carrier": event.is_codec_carrier,
+            "gate_ratio": round(event.gate_ratio, 4),
+            "articulation": event.articulation,
+            "cc1_modulation": event.cc_controls.get(1, ""),
+            "cc10_pan": event.cc_controls.get(10, ""),
+            "cc74_brightness": event.cc_controls.get(74, ""),
+            "cc91_reverb": event.cc_controls.get(91, ""),
+            "cc93_chorus": event.cc_controls.get(93, ""),
+            "brightness": round(event.brightness, 4),
+            "reverb_mix": round(event.reverb_mix, 4),
+            "spatial_width": round(event.spatial_width, 4),
             "status": event.status,
             "mapping_rule": event.mapping_rule,
             **event.features,
@@ -140,10 +154,23 @@ def run_pipeline(filename: str, data: bytes, settings: SonificationSettings, pit
         seed=settings.seed,
     )
     title = f"{record.name} - BioSound GVR"
+    sequence_payload = None
+    if record.data_type in {"dna", "rna", "protein"}:
+        canonical_sequence = "".join(record.symbols).upper()
+        sequence_payload = {
+            "payload_version": "biosound-sequence-v1",
+            "data_type": record.data_type,
+            "canonical_sequence": canonical_sequence,
+            "length": len(canonical_sequence),
+            "sequence_sha256": hashlib.sha256(canonical_sequence.encode("ascii", errors="strict")).hexdigest(),
+            "mapping_mode": settings.pitch_mode,
+            "recovery_scope": "exact canonical symbol recovery from embedded metadata; not pitch-only inverse design",
+        }
     musicxml = events_to_musicxml(
-        events, title, settings.tempo, (settings.meter_beats, settings.meter_beat_type), codec_metadata=codec
+        events, title, settings.tempo, (settings.meter_beats, settings.meter_beat_type),
+        codec_metadata=codec, sequence_metadata=sequence_payload,
     )
-    midi = events_to_midi(events, settings.tempo, codec_metadata=codec)
+    midi = events_to_midi(events, settings.tempo, codec_metadata=codec, sequence_metadata=sequence_payload)
     summary = {
         "record_name": record.name,
         "data_type": record.data_type,
@@ -172,7 +199,10 @@ def run_pipeline(filename: str, data: bytes, settings: SonificationSettings, pit
         "codec_version": codec["codec_version"] if codec else None,
         "scientific_scope": "可追溯的规则与相对物理特征声学化；不是分子真实声波的直接录音。",
     }
-    metadata = {**summary, "record_metadata": record.metadata, "audio": audio_info, "nma": nma}
+    metadata = {
+        **summary, "record_metadata": record.metadata, "audio": audio_info, "nma": nma,
+        "sequence_payload": sequence_payload,
+    }
     return PipelineResult(
         record=record,
         all_record_names=[r.name for r in records],
